@@ -1,0 +1,13 @@
+{
+  "name": "Fading Age Würfel",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "action": {
+    "title": "Würfeln",
+    "icon": "icon.svg",
+    "popover": "index.html",
+    "width": 320,
+    "height": 520
+  },
+  "background_url": "background.html"
+}

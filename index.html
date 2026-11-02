@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fading Age Würfel</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 12px; background: #1e2231; color: #e8e6e3; font-size: 14px; }
+  label { display: block; margin-top: 8px; font-size: 12px; opacity: .8; }
+  .row { display: flex; gap: 8px; }
+  .row > div { flex: 1; }
+  input, select { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px;
+    border: 1px solid #444a63; background: #2a2f45; color: inherit; }
+  .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
+  .check input { width: auto; }
+  button { width: 100%; margin-top: 12px; padding: 10px; border: 0; border-radius: 8px;
+    background: #b8893c; color: #1a1408; font-weight: 700; font-size: 15px; cursor: pointer; }
+  button:hover { background: #cc9a48; }
+  #log { margin-top: 12px; max-height: 210px; overflow-y: auto; }
+  .entry { padding: 6px 8px; margin-bottom: 6px; background: #2a2f45; border-radius: 6px; }
+  .entry .who { font-weight: 700; }
+  .entry .dice { opacity: .75; font-size: 12px; }
+  .hit { color: #8fd694; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div>
+      <label for="count">Anzahl Würfel</label>
+      <input id="count" type="number" min="1" max="30" value="3">
+    </div>
+    <div>
+      <label for="sides">Würfeltyp</label>
+      <select id="sides">
+        <option>4</option><option selected>6</option><option>8</option>
+        <option>10</option><option>12</option><option>20</option><option>100</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label for="mod">Modifikator</label>
+      <input id="mod" type="number" value="0">
+    </div>
+    <div>
+      <label for="thr">Erfolg ab (0 = aus)</label>
+      <input id="thr" type="number" min="0" value="0">
+    </div>
+  </div>
+  <div class="check">
+    <input id="hidden" type="checkbox"><span>Verdeckt (nur ich sehe das Ergebnis)</span>
+  </div>
+  <button id="roll">Würfeln</button>
+  <div id="log"></div>
+
+<script type="module">
+  import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+
+  const CHANNEL = "de.fadingage.dice";
+  const $ = (id) => document.getElementById(id);
+
+  // Gleichverteilter Zufall ohne Modulo-Verzerrung
+  function randInt(max) {
+    const limit = Math.floor(0x100000000 / max) * max;
+    const buf = new Uint32Array(1);
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    return (buf[0] % max) + 1;
+  }
+
+  function render(r) {
+    const div = document.createElement("div");
+    div.className = "entry";
+    const hits = r.threshold > 0
+      ? ` | <span class="hit">${r.successes} Erfolg${r.successes === 1 ? "" : "e"}</span>` : "";
+    const modTxt = r.mod ? ` ${r.mod > 0 ? "+" : "-"} ${Math.abs(r.mod)}` : "";
+    div.innerHTML =
+      `<div><span class="who"></span> würfelt ${r.count}W${r.sides}${modTxt}</div>` +
+      `<div>Summe: <b>${r.total}</b>${hits}</div>` +
+      `<div class="dice">[${r.dice.join(", ")}]</div>`;
+    div.querySelector(".who").textContent = r.name;
+    $("log").prepend(div);
+    while ($("log").children.length > 15) $("log").lastChild.remove();
+  }
+
+  OBR.onReady(() => {
+    OBR.broadcast.onMessage(CHANNEL, (event) => render(event.data));
+
+    $("roll").addEventListener("click", async () => {
+      const count = Math.min(30, Math.max(1, parseInt($("count").value) || 1));
+      const sides = parseInt($("sides").value);
+      const mod = parseInt($("mod").value) || 0;
+      const threshold = Math.max(0, parseInt($("thr").value) || 0);
+
+      const dice = Array.from({ length: count }, () => randInt(sides));
+      const sum = dice.reduce((a, b) => a + b, 0);
+      const successes = threshold > 0 ? dice.filter((d) => d >= threshold).length : 0;
+      const name = await OBR.player.getName();
+
+      const summary = threshold > 0
+        ? `${count}W${sides}: ${successes} Erfolg(e), Summe ${sum + mod}`
+        : `${count}W${sides}: ${sum + mod}`;
+
+      const result = { name, count, sides, mod, threshold, dice, successes, total: sum + mod, summary };
+      const hidden = $("hidden").checked;
+
+      await OBR.broadcast.sendMessage(CHANNEL, result, { destination: hidden ? "LOCAL" : "ALL" });
+    });
+  });
+</script>
+</body>
+</html>

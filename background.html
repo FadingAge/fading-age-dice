@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <body>
+    <script type="module">
+      import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+
+      OBR.onReady(() => {
+        // Zeigt jeden Wurf als Benachrichtigung an, auch wenn das Popover geschlossen ist
+        OBR.broadcast.onMessage("de.fadingage.dice", (event) => {
+          const r = event.data;
+          OBR.notification.show(`${r.name}: ${r.summary}`, "DEFAULT");
+        });
+      });
+    </script>
+  </body>
+</html>
