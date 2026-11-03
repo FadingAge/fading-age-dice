@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fading Age Würfel</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 10px; background: #0f0a1a; color: #e8e6e3; font-size: 14px; }
+  button { font-family: inherit; }
+  .tabs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 8px; }
+  .switch { display: flex; }
+  .tab { display: flex; align-items: center; justify-content: center;
+    width: 56px; height: 34px; padding: 0; border: 1px solid #37295a; background: #1a1230;
+    color: #e8e6e3; cursor: pointer; }
+  .switch .tab:first-child { border-radius: 8px 0 0 8px; }
+  .switch .tab:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
+  .tab.icon { width: 34px; border-radius: 8px; justify-self: end; grid-column: 3; }
+  #tab-hide { justify-self: start; grid-column: 1; }
+  .hid-line { display: none; }
+  #tab-hide.active .hid-line { display: block; }
+  .tab svg { width: 22px; height: 22px; flex: none; }
+  .tab.active { background: #d1a030; border-color: #d1a030; color: #1a1408; }
+  #tray { width: 100%; height: 170px; display: block; border-radius: 10px;
+    background: radial-gradient(ellipse at center, #21183c 0%, #0a0612 100%); }
+  .act { display: grid; grid-template-columns: 56px 1fr 56px; gap: 8px; align-items: center; margin-top: 8px; }
+  .abtn { height: 48px; border: 0; border-radius: 12px; background: #d1a030; color: #1a1408; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; }
+  .abtn svg { width: 28px; height: 28px; }
+  .abtn:hover:not(:disabled) { background: #e3b542; }
+  .abtn.alt { background: #6f55b8; color: #fff; }
+  .abtn.alt:hover:not(:disabled) { background: #8068cc; }
+  .abtn:disabled { opacity: .4; cursor: default; }
+  .abtn .i-sword { display: none; }
+  .abtn.attack { background: #b83a3a; color: #fff; animation: glow 1.4s ease-in-out infinite; }
+  .abtn.attack:hover:not(:disabled) { background: #cc4a4a; }
+  .abtn.attack .i-dice { display: none; }
+  .abtn.attack .i-sword { display: block; }
+  @keyframes glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,100,100,0); } 50% { box-shadow: 0 0 12px 3px rgba(255,100,100,.75); } }
+  .mid { text-align: center; min-width: 0; }
+  #res { font-size: 17px; font-weight: 700; line-height: 1.15; color: #8fd694; }
+  #adjbox small { display: block; font-size: 11px; opacity: .75; margin-bottom: 3px; }
+  #adjbox .step { justify-content: center; }
+
+  .pool-block { margin-top: 6px; }
+  .pool-head { display: flex; justify-content: center; gap: 5px; font-weight: 700; margin-bottom: 4px; }
+  .pool { display: flex; justify-content: center; gap: 3px; }
+  .slot { flex: none; width: 32px; height: 32px; padding: 0; cursor: pointer;
+    border: 1.5px solid #37295a; border-radius: 8px; background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #aa9dd2; opacity: .55; }
+  .slot:hover { border-color: #9486c2; opacity: .85; }
+  .slot.on { background: var(--body); border-color: var(--pip); color: var(--pip);
+    color: color-mix(in srgb, var(--pip) 80%, transparent); opacity: 1; }
+
+  .pool-head.fear { color: #c4a6ff; }
+  .pool-mid { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; }
+  .pool.locked { opacity: .3; pointer-events: none; filter: grayscale(.7); }
+  .slot.on.sap { background: transparent; border-style: dashed; border-color: var(--body); color: var(--body);
+    text-decoration: line-through; opacity: .6; }
+  .stat { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  #stat-exh { --c: #d4893c; } #stat-fear { --c: #9b6fe0; }
+  .sbtn { flex: none; width: 40px; height: 32px; padding: 0; cursor: pointer;
+    border: 1.5px solid #37295a; border-radius: 8px; background: #1a1230; color: #aa9dd2;
+    display: flex; align-items: center; justify-content: center; }
+  .sbtn svg { width: 26px; height: 26px; }
+  .sbtn:hover { border-color: #9486c2; }
+  .sbtn:not(.on) { color: #8173ab; }
+  .sbtn:not(.on) svg { opacity: .55; }
+  .sbtn:not(.on):hover svg { opacity: .8; }
+  .sbtn.on { color: #fff; background: #7a4a1c; border-color: var(--c); }
+  #btn-fear.on { background: #4a2f73; }
+  .dots { display: flex; gap: 4px; }
+  .dots button { width: 10px; height: 10px; padding: 0; border-radius: 50%; cursor: pointer;
+    border: 1.5px solid #8173ab; background: transparent; }
+  .dots button:hover { border-color: var(--c); }
+  .dots button.on { background: var(--c); border-color: var(--c); }
+
+  .row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+  #skill { flex: none; width: 170px; }
+  .star { width: 24px; text-align: center; font-size: 20px; color: #e0b035; flex: none; }
+  .seg { flex: 1; display: flex; }
+  .seg button { flex: 1; min-width: 0; padding: 7px 0; border: 1px solid #37295a; background: #1a1230;
+    color: inherit; cursor: pointer; margin-left: -1px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button.on { background: #d1a030; border-color: #d1a030; color: #1a1408; font-weight: 700; }
+  .go { width: 100%; margin-top: 10px; padding: 10px; border: 0; border-radius: 8px;
+    background: #d1a030; color: #1a1408; font-weight: 700; font-size: 15px; cursor: pointer; }
+  .go:hover:not(:disabled) { background: #e3b542; }
+  .go:disabled { opacity: .4; cursor: default; }
+
+  .step { display: flex; align-items: center; }
+  .step button { width: 34px; padding: 6px 0; border: 1px solid #37295a; background: #1a1230;
+    color: inherit; font-size: 16px; cursor: pointer; }
+  .step button:first-child { border-radius: 6px 0 0 6px; }
+  .step button:last-child { border-radius: 0 6px 6px 0; }
+  .step span { min-width: 38px; padding: 6px 0; text-align: center; font-weight: 700; font-size: 16px;
+    border-top: 1px solid #37295a; border-bottom: 1px solid #37295a; background: #0f0a1a; }
+
+  #settings .srow { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  #settings .name { width: 52px; flex: none; font-weight: 700; }
+  .cl { display: flex; flex-direction: column; gap: 3px; font-size: 11px; opacity: .9; }
+  .cl input[type=color] { width: 70px; height: 30px; padding: 0; border: 1px solid #37295a;
+    border-radius: 6px; background: none; cursor: pointer; }
+  .hint { margin: 12px 0 0; font-size: 12px; opacity: .65; line-height: 1.35; }
+
+  #log { margin-top: 10px; max-height: 90px; overflow-y: auto; }
+  .entry { padding: 6px 8px; margin-bottom: 6px; background: #1a1230; border-radius: 6px; font-size: 13px; }
+  .chip { display: inline-block; padding: 1px 7px; margin: 3px 4px 0 0; border-radius: 10px;
+    font-size: 12px; font-weight: 700; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="tabs">
+    <button class="tab icon" id="tab-hide" title="Verdeckt würfeln (nur ich sehe das Ergebnis)" aria-label="Verdeckt würfeln">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+        <path class="hid-line" d="M4 4l16 16"/>
+      </svg>
+    </button>
+    <div class="switch" style="grid-column:2">
+    <button class="tab active" id="tab-normal" title="Normaler Wurf" aria-label="Normaler Wurf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="16" cy="8" r="1.3" fill="currentColor"/>
+        <circle cx="12" cy="12" r="1.3" fill="currentColor"/>
+        <circle cx="8" cy="16" r="1.3" fill="currentColor"/><circle cx="16" cy="16" r="1.3" fill="currentColor"/>
+      </svg>
+    </button>
+    <button class="tab" id="tab-combat" title="Kampf" aria-label="Kampf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M4 20 19 5M15 4l5 5M7 17l-3-3"/><path d="M20 20 5 5M9 4L4 9M17 17l3-3"/>
+      </svg>
+    </button>
+    </div>
+    <button class="tab icon" id="tab-set" title="Einstellungen" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>
+      </svg>
+    </button>
+  </div>
+
+  <canvas id="tray"></canvas>
+
+  <div id="main">
+    <div class="act">
+      <button class="abtn" id="roll" title="Würfeln" aria-label="Würfeln">
+        <svg class="i-dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="16" cy="8" r="1.3" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.3" fill="currentColor"/>
+          <circle cx="8" cy="16" r="1.3" fill="currentColor"/><circle cx="16" cy="16" r="1.3" fill="currentColor"/>
+        </svg>
+        <svg class="i-sword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 20 19 5M15 4l5 5M7 17l-3-3"/><path d="M20 20 5 5M9 4L4 9M17 17l3-3"/>
+        </svg>
+      </button>
+      <div class="mid">
+        <div id="res"></div>
+        <div id="adjbox" hidden><small>Erfolge ändern?</small>
+          <div class="step"><button id="adjm">-</button><span id="adjv">0</span><button id="adjp">+</button></div></div>
+      </div>
+      <button class="abtn alt" id="push" disabled title="Push (Erfolglose neu würfeln)" aria-label="Push">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15.5 1.5 8.5 10l4 1.5V22" stroke-linejoin="miter" stroke-width="1.8"/><path d="M8.5 17.8l4 4.2 4-4.2" stroke-linejoin="miter" stroke-width="1.8"/>
+        </svg>
+      </button>
+    </div>
+    <div class="pool-block">
+      <div class="pool-head"><span>Attribut:</span><span id="pool-w-n"></span><span>W6</span></div>
+      <div class="pool" id="pool-w"></div>
+    </div>
+    <div class="pool-block">
+      <div class="pool-head" id="head-m"><span id="lbl-m">Merkmal:</span><span id="pool-m-n"></span><span id="unit-m">MW6</span></div>
+      <div class="pool-mid">
+        <div class="stat" id="stat-exh">
+          <button class="sbtn" id="btn-exh" title="Erschöpfung (nimmt W6 weg). Antippen schaltet die Stufe weiter." aria-label="Erschöpfung"></button>
+          <div class="dots" id="dots-exh"><button data-l="1" title="Stufe 1"></button><button data-l="2" title="Stufe 2"></button></div>
+        </div>
+        <div class="pool" id="pool-m"></div>
+        <div class="stat" id="stat-fear">
+          <button class="sbtn" id="btn-fear" title="Furcht (ersetzt die MW6 durch FurchtW6). Antippen schaltet die Stufe weiter." aria-label="Furcht"></button>
+          <div class="dots" id="dots-fear"><button data-l="1" title="Stufe 1"></button><button data-l="2" title="Stufe 2"></button></div>
+        </div>
+      </div>
+    </div>
+    <div class="row"><span class="star">★</span>
+      <div class="seg" id="skill">
+        <button data-r="0">-</button><button data-r="1">I</button><button data-r="2">II</button><button data-r="3">III</button>
+      </div></div>
+  </div>
+
+  <div id="settings" hidden>
+    <div class="srow"><span class="name">W6</span>
+      <label class="cl">Würfel<input type="color" id="cw"></label>
+      <label class="cl">Augen<input type="color" id="pw"></label></div>
+    <div class="srow"><span class="name">MW6</span>
+      <label class="cl">Würfel<input type="color" id="cm"></label>
+      <label class="cl">Augen<input type="color" id="pm"></label></div>
+    <div class="srow"><span class="name">Furcht</span>
+      <label class="cl">Würfel<input type="color" id="cf"></label>
+      <label class="cl">Augen<input type="color" id="pf"></label></div>
+    <div class="srow"><span class="name">Anzeige</span>
+      <div class="seg" id="style"><button data-s="pips">Augen</button><button data-s="num">Zahlen</button></div></div>
+    <div class="srow"><span class="name">Ton</span>
+      <div class="seg" id="snd"><button data-s="1">An</button><button data-s="0">Aus</button></div></div>
+    <p class="hint">Deine Würfelfarben sehen alle am Tisch. Augen oder Zahlen und Ton gelten nur für dich.</p>
+    <button class="go" id="sdone">Fertig</button>
+  </div>
+
+  <div id="log"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script type="module">
+  import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+
+  const CHANNEL = "de.fadingage.dice";
+  const ROMAN = ["", "I", "II", "III"];
+  const MAX_POOL = { nw: 7, nm: 3 }, MAX_ATTACK = 10;
+  const HEX = /^#[0-9a-f]{6}$/i;
+  const $ = (id) => document.getElementById(id);
+  const safe = (h, fb = "#888888") => (HEX.test(h) ? h : fb);
+  const lum = (h) => { const n = parseInt(h.slice(1), 16);
+    return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
+
+  function randInt(max) {
+    const limit = Math.floor(0x100000000 / max) * max, buf = new Uint32Array(1);
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    return (buf[0] % max) + 1;
+  }
+
+  // ---------- Einstellungen (nur lokal gespeichert) ----------
+  const S = { cw: "#e0b035", pw: "#1a1408", cm: "#b83a3a", pm: "#f5efe0", cf: "#5b3a8c", pf: "#f5efe0",
+    style: "pips", sound: true, nw: 3, nm: 0, skill: 0, exh: 0, fear: 0, mode: "normal" };
+  try {
+    const s = JSON.parse(localStorage.getItem("fa-dice3") || localStorage.getItem("fa-dice2") || "{}");
+    ["cw", "pw", "cm", "pm", "cf", "pf"].forEach((k) => { if (HEX.test(s[k])) S[k] = s[k].toLowerCase(); });
+    if (s.style === "num") S.style = "num";
+    if (s.sound === false) S.sound = false;
+    if (s.nw !== undefined) S.nw = clamp(s.nw, 0, MAX_POOL.nw);
+    if (s.nm !== undefined) S.nm = clamp(s.nm, 0, MAX_POOL.nm);
+    if (s.skill !== undefined) S.skill = clamp(s.skill, 0, 3);
+    if (s.exh !== undefined) S.exh = clamp(s.exh, 0, 2);
+    if (s.fear !== undefined) S.fear = clamp(s.fear, 0, 2);
+    if (s.mode === "combat") S.mode = "combat";
+  } catch {}
+  const save = () => { try { localStorage.setItem("fa-dice3", JSON.stringify(S)); } catch {} };
+
+  // ---------- Regeln ----------
+  // Erfolge je Würfel: W6 +1 auf 5-6, MW6 +2 auf 5-6, FurchtW6 +2 auf 5-6 und -2 auf 1-2
+  const hit = (d) => d.k === "f" ? (d.v >= 5 ? 2 : d.v <= 2 ? -2 : 0)
+    : (d.v >= 5 ? (d.k === "m" ? 2 : 1) : 0);
+  // Push: W6 und MW6 wenn erfolglos (1-4), FurchtW6 nur bei 3-4; das Ergebnis des Neuwurfs zählt wie beim Wurf
+  const pushable = (d) => d.k === "f" ? (d.v === 3 || d.v === 4) : d.v < 5;
+  const pushDelta = (k, v) => (k === "f" ? 2 : k === "m" ? 2 : 1) * (v >= 5 ? 1 : v <= 2 ? -1 : 0);
+  const plural = (n) => `${n} Erfolg${n === 1 ? "" : "e"}`;
+  function label(st) {
+    const c = { w: 0, m: 0, f: 0 }, p = [];
+    st.dice.forEach((d) => { c[d.k]++; });
+    if (c.w) p.push(c.w + "W6");
+    if (c.m) p.push(c.m + "MW6");
+    if (c.f) p.push(c.f + "FurchtW6");
+    if (st.skill) p.push("Fertigkeit " + ROMAN[st.skill]);
+    return p.join(" + ") + (st.exh ? ` (Erschöpfung -${st.exh})` : "");
+  }
+
+  // ---------- 3D-Würfel ----------
+  const FACES = [3, 4, 1, 6, 2, 5]; // Materialreihenfolge der BoxGeometry: +x, -x, +y, -y, +z, -z
+  const NORMALS = { 3: [1,0,0], 4: [-1,0,0], 1: [0,1,0], 6: [0,-1,0], 2: [0,0,1], 5: [0,0,-1] };
+  const PIPS = { 1: [[1,1]], 2: [[0,0],[2,2]], 3: [[0,0],[1,1],[2,2]],
+    4: [[0,0],[2,0],[0,2],[2,2]], 5: [[0,0],[2,0],[1,1],[0,2],[2,2]],
+    6: [[0,0],[2,0],[0,1],[2,1],[0,2],[2,2]] };
+
+  // Würfel mit abgerundeten Kanten: unterteilter Würfel, dessen Randpunkte auf eine Rundung gezogen werden
+  function roundedCube(n, r) {
+    const g = new THREE.BoxGeometry(1, 1, 1, n, n, n);
+    const pos = g.attributes.position, nor = g.attributes.normal, lim = 0.5 - r;
+    const p = new THREE.Vector3(), c = new THREE.Vector3(), d = new THREE.Vector3();
+    const cl = (x) => Math.max(-lim, Math.min(lim, x));
+    for (let i = 0; i < pos.count; i++) {
+      p.fromBufferAttribute(pos, i);
+      c.set(cl(p.x), cl(p.y), cl(p.z));
+      d.subVectors(p, c);
+      if (d.lengthSq() > 1e-12) {
+        d.normalize();
+        p.copy(c).addScaledVector(d, r);
+        nor.setXYZ(i, d.x, d.y, d.z);
+      }
+      pos.setXYZ(i, p.x, p.y, p.z);
+    }
+    pos.needsUpdate = true; nor.needsUpdate = true;
+    return g;
+  }
+
+  const matCache = {};
+  function materials(hex, pip, style) {
+    const key = hex + pip + style;
+    if (matCache[key]) return matCache[key];
+    if (Object.keys(matCache).length >= 30) {
+      for (const k in matCache) { matCache[k].forEach((m) => { m.map.dispose(); m.dispose(); }); delete matCache[k]; }
+    }
+    return (matCache[key] = FACES.map((v) => {
+      const c = document.createElement("canvas"); c.width = c.height = 128;
+      const g = c.getContext("2d");
+      g.fillStyle = hex; g.fillRect(0, 0, 128, 128);
+      g.fillStyle = pip;
+      if (style === "num") {
+        g.font = "bold 80px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(String(v), 64, 70);
+      } else {
+        PIPS[v].forEach(([x, y]) => { g.beginPath(); g.arc(32 * (x + 1), 32 * (y + 1), 10, 0, 7); g.fill(); });
+      }
+      return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), roughness: 0.35, metalness: 0.05 });
+    }));
+  }
+
+  const canvas = $("tray");
+  const W = canvas.clientWidth || 260, H = 170;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(W, H, false);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(3, 8, 4); scene.add(sun);
+  const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 50);
+  camera.position.set(0, 10, 4); camera.lookAt(0, 0, 0);
+  const geo = roundedCube(20, 0.15);
+  let meshes = [], shown = [];
+
+  // ---------- Physik: der Wurf wird vorab mit cannon.js berechnet und dann abgespielt ----------
+  const DT = 1 / 60, MAX_STEPS = 270, BOX = { x: 5, z0: -3.8, z1: 2.8 };
+  const UP = new THREE.Vector3(0, 1, 0);
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  // Welche Fläche (Augenzahl) liegt bei der Orientierung q oben?
+  function upFace(q) {
+    const n = new THREE.Vector3(); let face = 1, y = -2;
+    for (const f in NORMALS) { n.set(...NORMALS[f]).applyQuaternion(q); if (n.y > y) { y = n.y; face = +f; } }
+    return { face, y };
+  }
+
+  // Ein Wurf. items: { fixed: true, p, q } für liegende Würfel, { fixed: false } für geworfene
+  function attempt(items) {
+    const world = new CANNON.World();
+    world.gravity.set(0, -35, 0);
+    world.solver.iterations = 14;
+    const mD = new CANNON.Material("d"), mB = new CANNON.Material("b");
+    world.addContactMaterial(new CANNON.ContactMaterial(mD, mB, { friction: 0.4, restitution: 0.32 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(mD, mD, { friction: 0.3, restitution: 0.28 }));
+    const wall = (kind, x, z, axis, ang) => {
+      const b = new CANNON.Body({ mass: 0, material: mB });
+      b.addShape(new CANNON.Plane()); b.position.set(x, 0, z); b.kind = kind;
+      b.quaternion.setFromAxisAngle(new CANNON.Vec3(...axis), ang); world.addBody(b);
+    };
+    wall("floor", 0, 0, [1, 0, 0], -Math.PI / 2);
+    wall("wall", 0, BOX.z0, [0, 1, 0], 0);
+    wall("wall", 0, BOX.z1, [0, 1, 0], Math.PI);
+    wall("wall", -BOX.x, 0, [0, 1, 0], Math.PI / 2);
+    wall("wall", BOX.x, 0, [0, 1, 0], -Math.PI / 2);
+
+    const half = new CANNON.Vec3(0.5, 0.5, 0.5), moving = [], events = [];
+    const nMove = items.filter((it) => !it.fixed).length;
+    let step = 0;
+    items.forEach((it) => {
+      const b = new CANNON.Body({ mass: it.fixed ? 0 : 1, material: mD, linearDamping: 0.15, angularDamping: 0.2 });
+      b.addShape(new CANNON.Box(half));
+      if (it.fixed) {
+        b.position.set(it.p.x, it.p.y, it.p.z); b.quaternion.set(it.q.x, it.q.y, it.q.z, it.q.w);
+      } else {
+        const k = moving.length, c = Math.min(nMove, 5), row = Math.floor(k / c), col = k % c;
+        b.position.set((col - (c - 1) / 2) * 1.7 + (row ? 0.85 : 0) + rnd(-0.15, 0.15), 2.6 + row * 0.9 + rnd(0, 0.3), BOX.z0 + 0.9 + row * 1.5 + rnd(0, 0.3));
+        const rq = new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(0, 6.28), rnd(0, 6.28), rnd(0, 6.28)));
+        b.quaternion.set(rq.x, rq.y, rq.z, rq.w);
+        b.velocity.set(rnd(-1.5, 1.5), rnd(0, 1.5), rnd(3.5, 6.5));
+        b.angularVelocity.set(rnd(-12, 12), rnd(-12, 12), rnd(-12, 12));
+        const ev = []; events.push(ev); let last = -1;
+        b.addEventListener("collide", (e) => {
+          const t = step * DT, v = Math.abs(e.contact.getImpactVelocityAlongNormal());
+          if (!e.body.kind && e.body.id < b.id) return; // Würfel gegen Würfel nur einmal zählen
+          if (v > 0.7 && t - last > 0.04) { last = t; ev.push({ t, v, kind: e.body.kind || "die" }); }
+        });
+        moving.push(b);
+      }
+      world.addBody(b);
+    });
+
+    const frames = moving.map(() => []);
+    let calm = 0;
+    for (step = 1; step <= MAX_STEPS; step++) {
+      world.step(DT);
+      let still = true;
+      moving.forEach((b, i) => {
+        frames[i].push(b.position.x, b.position.y, b.position.z, b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+        if (b.velocity.norm() > 0.2 || b.angularVelocity.norm() > 0.35) still = false;
+      });
+      calm = still ? calm + 1 : 0;
+      if (calm >= 18) break;
+    }
+
+    // Ergebnis prüfen (liegt flach auf dem Boden?) und die letzten Bilder exakt ausrichten
+    const tracks = [], finals = []; let bad = 0;
+    moving.forEach((b, i) => {
+      const fr = frames[i], n = fr.length / 7, o = (n - 1) * 7, y0 = fr[o + 1];
+      const q = new THREE.Quaternion(fr[o + 3], fr[o + 4], fr[o + 5], fr[o + 6]);
+      const { face, y } = upFace(q), flat = y > 0.985 && y0 > 0.4 && y0 < 0.62;
+      if (!flat || calm < 18) bad++;
+      const wn = new THREE.Vector3(...NORMALS[face]).applyQuaternion(q);
+      const ideal = new THREE.Quaternion().setFromUnitVectors(wn, UP).multiply(q);
+      const K = Math.min(12, n);
+      for (let j = 0; j < K; j++) {
+        const oo = (n - K + j) * 7, a = (j + 1) / K;
+        const qq = new THREE.Quaternion(fr[oo + 3], fr[oo + 4], fr[oo + 5], fr[oo + 6]).slerp(ideal, a);
+        fr[oo + 3] = qq.x; fr[oo + 4] = qq.y; fr[oo + 5] = qq.z; fr[oo + 6] = qq.w;
+        if (flat) fr[oo + 1] += (0.5 - fr[oo + 1]) * a;
+      }
+      tracks.push(Float32Array.from(fr));
+      finals.push({ p: new THREE.Vector3(fr[o], flat ? 0.5 : y0, fr[o + 2]), q: ideal, face });
+    });
+    return { tracks, events, finals, bad };
+  }
+
+  function simulate(items) {
+    let best = null;
+    for (let t = 0; t < 8; t++) {
+      const r = attempt(items);
+      if (!best || r.bad < best.bad) best = r;
+      if (!r.bad) break;
+    }
+    return best;
+  }
+
+  // Drehung im Würfel, damit die oben liegende Fläche die gewürfelte Augenzahl zeigt
+  const offsetFor = (v, face) => new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(...NORMALS[v]), new THREE.Vector3(...NORMALS[face]));
+
+  // Liegender Würfel ohne Wurf: Augenzahl v oben, zufällig gedreht
+  function placeStatic(m, v) {
+    const d = m.userData;
+    const q = new THREE.Quaternion().setFromAxisAngle(UP, Math.random() * 6.28)
+      .multiply(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...NORMALS[v]), UP));
+    Object.assign(d, { v, fp: new THREE.Vector3(d.tx, 0.5, d.tz), fq: q, qOff: new THREE.Quaternion(),
+      track: Float32Array.of(d.tx, 0.5, d.tz, q.x, q.y, q.z, q.w), ev: null, evi: 0, t0: -1e9 });
+  }
+
+  // Wirft die Würfel changes = [[Index, Augenzahl]]; alle anderen bleiben liegen und stehen im Weg
+  function throwDice(changes) {
+    const mv = new Map(changes);
+    const res = simulate(meshes.map((m, i) => mv.has(i) ? { fixed: false }
+      : { fixed: true, p: m.userData.fp, q: m.userData.fq }));
+    const t0 = performance.now(); let k = 0;
+    meshes.forEach((m, i) => {
+      if (!mv.has(i)) return;
+      const d = m.userData, f = res.finals[k];
+      Object.assign(d, { v: mv.get(i), track: res.tracks[k], ev: res.events[k], evi: 0, t0,
+        fp: f.p, fq: f.q, qOff: offsetFor(mv.get(i), f.face) });
+      k++;
+    });
+    kick();
+  }
+
+  function build(dice, animate, remember = true) {
+    meshes.forEach((m) => scene.remove(m)); meshes = [];
+    if (remember) shown = dice;
+    const n = dice.length;
+    if (!n) { renderer.render(scene, camera); return; }
+    const cols = Math.min(n, 5), rows = Math.ceil(n / cols);
+    dice.forEach((d, i) => {
+      const m = new THREE.Mesh(geo, materials(d.hex, d.pip, S.style));
+      m.userData = { tx: ((i % cols) - (cols - 1) / 2) * 1.5, tz: (Math.floor(i / cols) - (rows - 1) / 2) * 1.5,
+        hex: d.hex, pip: d.pip };
+      placeStatic(m, d.v);
+      scene.add(m); meshes.push(m);
+    });
+    if (animate) throwDice(dice.map((d, i) => [i, d.v])); else frame(performance.now());
+  }
+  const showRoll = (dice) => build(dice, true);
+  const showStatic = (dice) => build(dice, false);
+  const showPreview = () => build([{ v: 5, hex: S.cw, pip: S.pw }, { v: 3, hex: S.cm, pip: S.pm }, { v: 6, hex: S.cf, pip: S.pf }], false, false);
+  const showPush = (changes) => throwDice(changes.filter(([i]) => meshes[i]));
+
+  function restyle() {
+    meshes.forEach((m) => { m.material = materials(m.userData.hex, m.userData.pip, S.style); });
+    renderer.render(scene, camera);
+  }
+
+  // ---------- Ton: kurze Klack-Geräusche, im Browser erzeugt ----------
+  let ac = null, noise = null;
+  function audio() {
+    if (!ac) {
+      try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
+      noise = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.06), ac.sampleRate);
+      const ch = noise.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, 3);
+    }
+    if (ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  document.addEventListener("pointerdown", () => { if (S.sound) audio(); });
+  function thud({ v, kind }) {
+    if (!S.sound) return;
+    const a = audio(); if (!a || a.state !== "running") return;
+    const vol = Math.min(1, 0.08 + v / 12) * 0.5, t = a.currentTime;
+    const src = a.createBufferSource(); src.buffer = noise;
+    const f = a.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.1;
+    f.frequency.value = (kind === "die" ? 2800 : kind === "wall" ? 1100 : 1700) * rnd(0.85, 1.15);
+    const g = a.createGain(); g.gain.value = vol;
+    src.connect(f); f.connect(g); g.connect(a.destination); src.start(t);
+    const o = a.createOscillator(), og = a.createGain();
+    o.frequency.setValueAtTime((kind === "die" ? 520 : 220) * rnd(0.9, 1.1), t);
+    o.frequency.exponentialRampToValueAtTime(70, t + 0.07);
+    og.gain.setValueAtTime(vol * 0.9, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.12);
+  }
+
+  // ---------- Abspielen ----------
+  let raf = 0;
+  const kick = () => { if (!raf) raf = requestAnimationFrame((t) => { raf = 0; frame(t); }); };
+  const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+  function frame(now) {
+    let busy = false;
+    meshes.forEach((m) => {
+      const d = m.userData, tr = d.track, n = tr.length / 7;
+      const el = Math.max(0, (now - d.t0) / 1000), f = el / DT;
+      let i = Math.floor(f), a = f - i;
+      if (i >= n - 1) { i = n - 1; a = 0; } else busy = true;
+      const o = i * 7, o2 = Math.min(i + 1, n - 1) * 7;
+      m.position.set(tr[o] + (tr[o2] - tr[o]) * a, tr[o + 1] + (tr[o2 + 1] - tr[o + 1]) * a, tr[o + 2] + (tr[o2 + 2] - tr[o + 2]) * a);
+      qa.set(tr[o + 3], tr[o + 4], tr[o + 5], tr[o + 6]);
+      qa.slerp(qb.set(tr[o2 + 3], tr[o2 + 4], tr[o2 + 5], tr[o2 + 6]), a);
+      m.quaternion.copy(qa).multiply(d.qOff);
+      while (d.ev && d.evi < d.ev.length && d.ev[d.evi].t <= el) thud(d.ev[d.evi++]);
+    });
+    renderer.render(scene, camera);
+    if (busy) kick();
+  }
+
+  // ---------- Zustand und Anzeige ----------
+  let myId = "", state = null, adj = 0, hiddenRoll = false;
+
+  const chip = (d, mark = true) => `<span class="chip" style="background:${d.hex};color:${lum(d.hex) > 0.55 ? "#1a1408" : "#f5efe0"}">${d.v}${mark ? (d.v >= 5 ? " ✓" : d.k === "f" && d.v <= 2 ? " ✗" : "") : ""}</span>`;
+  function addEntry(html, who) {
+    const div = document.createElement("div");
+    div.className = "entry"; div.innerHTML = html;
+    div.querySelector(".who").textContent = who;
+    $("log").prepend(div);
+    while ($("log").children.length > 15) $("log").lastChild.remove();
+  }
+  function updateUi() {
+    const combat = !!state && state.mode === "combat", mine = !!state && state.pid === myId;
+    const phase2 = isAttackPhase();
+    let txt = "";
+    if (state) {
+      if (state.done) txt = state.n > 0 ? `Angriffswert: ${state.sum}` : "Angriff verfehlt";
+      else txt = plural(state.total) + (state.pushed ? " (nach Push)" : "")
+        + (combat && state.total === 0 ? ", Angriff verfehlt" : "");
+    }
+    $("res").textContent = txt;
+    $("res").hidden = phase2; $("adjbox").hidden = !phase2;
+    const can = mine && !state.pushed && !state.done && state.dice.some(pushable);
+    $("push").disabled = !can;
+    $("push").title = state && state.pushed ? "Gepusht" : "Push (Erfolglose neu würfeln)";
+    $("roll").classList.toggle("attack", phase2);
+    $("roll").disabled = false;
+    $("roll").title = phase2 ? (adj > 0 ? `Angriffswert würfeln (${adj}W6)` : "Angriff verfehlt melden")
+      : (S.mode === "combat" ? "Angriff würfeln" : "Würfeln");
+    if (phase2) {
+      $("adjv").textContent = adj;
+      $("adjm").disabled = adj <= 0; $("adjp").disabled = adj >= MAX_ATTACK;
+    }
+  }
+  // Nach einem Angriffswurf mit Erfolgen wird der Würfelknopf zum Angriffsknopf (Angriffswert würfeln)
+  const isAttackPhase = () => !!state && state.mode === "combat" && state.pid === myId
+    && !state.done && state.total > 0 && S.mode === "combat";
+
+  const cleanDie = (d) => ({ v: clamp(d.v, 1, 6) || 1, hex: safe(d.hex), pip: safe(d.pip, "#f5efe0") });
+  function cleanRoll(r) {
+    return { id: String(r.id).slice(0, 64), pid: String(r.pid || "").slice(0, 64),
+      name: String(r.name || "?").slice(0, 40), hidden: !!r.hidden, pushed: false, done: false,
+      mode: r.mode === "combat" ? "combat" : "normal",
+      skill: clamp(r.skill, 0, 3), exh: clamp(r.exh, 0, 2), total: Math.max(0, parseInt(r.total) || 0),
+      raw: Number.isFinite(parseInt(r.raw)) ? parseInt(r.raw) : Math.max(0, parseInt(r.total) || 0),
+      dice: (Array.isArray(r.dice) ? r.dice : []).slice(0, 20)
+        .map((d) => ({ k: d.k === "m" ? "m" : d.k === "f" ? "f" : "w", ...cleanDie(d) })) };
+  }
+  function cleanPush(p) {
+    return { id: String(p.id).slice(0, 64), name: String(p.name || "?").slice(0, 40),
+      delta: parseInt(p.delta) || 0, total: Math.max(0, parseInt(p.total) || 0),
+      raw: Number.isFinite(parseInt(p.raw)) ? parseInt(p.raw) : null,
+      changes: (Array.isArray(p.changes) ? p.changes : []).slice(0, 20)
+        .map(([i, v]) => [parseInt(i), clamp(v, 1, 6) || 1]) };
+  }
+  function cleanDamage(p) {
+    return { id: String(p.id).slice(0, 64), name: String(p.name || "?").slice(0, 40),
+      base: Math.max(0, parseInt(p.base) || 0),
+      dice: (Array.isArray(p.dice) ? p.dice : []).slice(0, MAX_ATTACK).map(cleanDie) };
+  }
+
+  function applyRoll(r) {
+    state = r; adj = Math.min(MAX_ATTACK, r.total);
+    showRoll(r.dice); updateUi();
+    const miss = r.mode === "combat" && r.total === 0 ? " (Angriff verfehlt)" : "";
+    addEntry(`<b class="who"></b>: ${r.mode === "combat" ? "Angriff " : ""}${label(r)} = <b>${plural(r.total)}</b>${miss}<div>${r.dice.map((d) => chip(d)).join("")}</div>`, r.name);
+  }
+  function applyDamage(p) {
+    const n = p.dice.length, sum = p.dice.reduce((a, d) => a + d.v, 0);
+    if (state && state.id === p.id) { state.done = true; state.n = n; state.sum = sum; }
+    showRoll(p.dice); updateUi();
+    const adjusted = p.base !== n ? ` (angepasst auf ${n})` : "";
+    addEntry(n > 0
+      ? `<b class="who"></b>: Angriffswert aus ${plural(p.base)}${adjusted}: ${n}W6 = <b>${sum}</b><div>${p.dice.map((d) => chip(d, false)).join("")}</div>`
+      : `<b class="who"></b>: Angriff verfehlt, ${plural(p.base)} angepasst auf 0`, p.name);
+  }
+  function applyPush(p) {
+    if (!state || state.id !== p.id || state.done) return;
+    const ch = p.changes.filter(([i]) => state.dice[i]);
+    ch.forEach(([i, v]) => { state.dice[i].v = v; });
+    state.total = p.total; state.pushed = true; adj = Math.min(MAX_ATTACK, state.total);
+    if (p.raw !== null) state.raw = p.raw;
+    showPush(ch); updateUi();
+    addEntry(`<b class="who"></b> pusht ${ch.map(([i]) => chip(state.dice[i])).join("")} ${p.delta >= 0 ? "+" : ""}${p.delta} = <b>${plural(p.total)}</b>`, p.name);
+  }
+
+  // Symbole der Zustände: Gänseblümchen (Erschöpfung) und Totenkopf (Furcht), je Stufe 0, 1, 2
+  const SVG = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+  const ICON_EXH = ["<ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(0 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(45 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(90 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(135 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(180 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(225 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(270 12 8.6)\"/><ellipse cx=\"12\" cy=\"4.3\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(315 12 8.6)\"/><circle cx=\"12\" cy=\"8.6\" r=\"1.7\"/><path d=\"M12 15.9V22\"/><path d=\"M12 20.4c-2.4.1-4-.8-4.6-2.5 2.4-.2 4 .6 4.6 2.5z\"/>", "<ellipse cx=\"12.6\" cy=\"4.7\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(10 12.6 9)\"/><ellipse cx=\"12.6\" cy=\"4.7\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(65 12.6 9)\"/><ellipse cx=\"12.6\" cy=\"4.7\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(150 12.6 9)\"/><ellipse cx=\"12.6\" cy=\"4.7\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(245 12.6 9)\"/><ellipse cx=\"12.6\" cy=\"4.7\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(310 12.6 9)\"/><circle cx=\"12.6\" cy=\"9\" r=\"1.7\"/><path d=\"M12 22c0-3 .7-4.3.6-6.2\"/><path d=\"M12 20.6c-2.4-.2-3.8-1.3-4.2-3 2.4-.1 3.8.8 4.2 3z\"/>", "<path d=\"M8.5 22V15.5c0-3.6 2.2-5.2 5.4-4.6\"/><ellipse cx=\"15.4\" cy=\"8.5\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(158 15.4 12.6)\"/><ellipse cx=\"15.4\" cy=\"8.5\" rx=\"1.3\" ry=\"2.5\" transform=\"rotate(208 15.4 12.6)\"/><circle cx=\"15.4\" cy=\"12.6\" r=\"1.6\"/><path d=\"M8.5 19.6c-2.3 0-3.7-1-4.2-2.5 2.2-.2 3.7.5 4.2 2.5z\"/><ellipse cx=\"17.2\" cy=\"21.4\" rx=\"1.1\" ry=\"2\" transform=\"rotate(75 17.2 21.4)\"/>"].map(SVG);
+  const ICON_FEAR = ["<path d=\"M12 2.6C7.6 2.6 4.6 5.6 4.6 9.7c0 2.3 1 4.1 2.6 5.2v2.3c0 .7.5 1.2 1.2 1.2H9v2.3h6v-2.3h.6c.7 0 1.2-.5 1.2-1.2v-2.3c1.6-1.1 2.6-2.9 2.6-5.2C19.4 5.6 16.4 2.6 12 2.6z\"/><path d=\"M6.9 9.3l3.9 1.2c.1 1.4-.6 2.4-1.9 2.6-1.4.2-2.4-.8-2.4-2.1 0-.6.1-1.2.4-1.7z\"/><path d=\"M17.1 9.3l-3.9 1.2c-.1 1.4.6 2.4 1.9 2.6 1.4.2 2.4-.8 2.4-2.1 0-.6-.1-1.2-.4-1.7z\"/><path d=\"M12 13.1l-1.2 2.3h2.4z\"/><path d=\"M9.8 18.4v2.3M12 18.4v2.3M14.2 18.4v2.3\"/>", "<path d=\"M12 2.6C7.6 2.6 4.6 5.6 4.6 9.7c0 2.3 1 4.1 2.6 5.2v2.3c0 .7.5 1.2 1.2 1.2H9v2.3h6v-2.3h.6c.7 0 1.2-.5 1.2-1.2v-2.3c1.6-1.1 2.6-2.9 2.6-5.2C19.4 5.6 16.4 2.6 12 2.6z\"/><path d=\"M6.9 9.3l3.9 1.2c.1 1.4-.6 2.4-1.9 2.6-1.4.2-2.4-.8-2.4-2.1 0-.6.1-1.2.4-1.7z\"/><path d=\"M17.1 9.3l-3.9 1.2c-.1 1.4.6 2.4 1.9 2.6 1.4.2 2.4-.8 2.4-2.1 0-.6-.1-1.2-.4-1.7z\"/><path d=\"M12 13.1l-1.2 2.3h2.4z\"/><path d=\"M9.8 18.4v2.3M12 18.4v2.3M14.2 18.4v2.3\"/>", "<path d=\"M12 2.6C7.6 2.6 4.6 5.6 4.6 9.7c0 2.3 1 4.1 2.6 5.2v2.3c0 .7.5 1.2 1.2 1.2H9v2.3h6v-2.3h.6c.7 0 1.2-.5 1.2-1.2v-2.3c1.6-1.1 2.6-2.9 2.6-5.2C19.4 5.6 16.4 2.6 12 2.6z\"/><path d=\"M6.6 8.4l4.4 2.1c0 1.5-.8 2.4-2 2.6-1.4.2-2.4-.8-2.4-2.1z\" fill=\"currentColor\"/><path d=\"M17.4 8.4l-4.4 2.1c0 1.5.8 2.4 2 2.6 1.4.2 2.4-.8 2.4-2.1z\" fill=\"currentColor\"/><path d=\"M12 13.1l-1.2 2.3h2.4z\" fill=\"currentColor\"/><path d=\"M13.2 2.7l-1.3 2.6 1.5 1.5-1 1.9\"/><path d=\"M8.6 18.3l.9 2.7.9-2.3 1.6 2.3 1.6-2.3.9 2.3.9-2.7\"/>"].map(SVG);
+
+  // ---------- Bedienung ----------
+  // Würfelauswahl: antippen setzt die Anzahl, erneutes Antippen des letzten gefüllten Feldes nimmt einen weg
+  const POOLS = [["pool-w", "nw", "cw", "pw"], ["pool-m", "nm", "cm", "pm"]];
+  POOLS.forEach(([id, key]) => {
+    const el = $(id);
+    for (let i = 1; i <= MAX_POOL[key]; i++) {
+      const b = document.createElement("button");
+      b.className = "slot"; b.dataset.n = i; b.textContent = i; b.setAttribute("aria-label", String(i));
+      el.appendChild(b);
+    }
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest(".slot"); if (!b) return;
+      const n = +b.dataset.n;
+      S[key] = S[key] === n ? n - 1 : n;
+      save(); paint();
+    });
+  });
+  function paint() {
+    POOLS.forEach(([id, key, c, p]) => {
+      const el = $(id);
+      el.style.setProperty("--body", S[c]); el.style.setProperty("--pip", S[p]);
+      [...el.children].forEach((b, i) => b.classList.toggle("on", i < S[key]));
+    });
+    // Erschöpfung nimmt W6 weg (durchgestrichene Felder), Furcht sperrt die MW6 und ersetzt sie durch FurchtW6
+    const drain = Math.min(S.exh, S.nw), eff = S.nw - drain, fear = S.fear > 0;
+    [...$("pool-w").children].forEach((b, i) => b.classList.toggle("sap", i >= eff && i < S.nw));
+    $("pool-w-n").textContent = eff + (drain ? ` (-${drain})` : "");
+    $("pool-m").classList.toggle("locked", fear);
+    $("head-m").classList.toggle("fear", fear);
+    $("lbl-m").textContent = fear ? "Furcht:" : "Merkmal:";
+    $("pool-m-n").textContent = fear ? S.fear : S.nm;
+    $("unit-m").textContent = fear ? "FurchtW6" : "MW6";
+    $("btn-exh").classList.toggle("on", S.exh > 0); $("btn-exh").innerHTML = ICON_EXH[S.exh];
+    $("btn-fear").classList.toggle("on", fear); $("btn-fear").innerHTML = ICON_FEAR[S.fear];
+    document.querySelectorAll("#dots-exh button").forEach((b) => b.classList.toggle("on", +b.dataset.l <= S.exh));
+    document.querySelectorAll("#dots-fear button").forEach((b) => b.classList.toggle("on", +b.dataset.l <= S.fear));
+    document.querySelectorAll("#skill button").forEach((b) => b.classList.toggle("on", +b.dataset.r === S.skill));
+    document.querySelectorAll("#style button").forEach((b) => b.classList.toggle("on", b.dataset.s === S.style));
+    document.querySelectorAll("#snd button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.sound));
+    $("tab-normal").classList.toggle("active", S.mode === "normal" && !settingsOpen);
+    $("tab-combat").classList.toggle("active", S.mode === "combat" && !settingsOpen);
+    $("tab-set").classList.toggle("active", settingsOpen);
+    $("tab-hide").classList.toggle("active", hiddenRoll);
+    updateUi();
+  }
+
+  let settingsOpen = false;
+  function setSettings(open) {
+    settingsOpen = open;
+    $("main").hidden = open; $("settings").hidden = !open;
+    paint();
+    if (open) showPreview(); else showStatic(shown);
+  }
+
+  ["cw", "pw", "cm", "pm", "cf", "pf"].forEach((k) => {
+    $(k).value = S[k];
+    $(k).addEventListener("input", () => { S[k] = $(k).value; paint(); showPreview(); });
+    $(k).addEventListener("change", save);
+  });
+  document.querySelectorAll("#style button").forEach((b) => b.addEventListener("click", () => {
+    S.style = b.dataset.s === "num" ? "num" : "pips"; save(); paint(); restyle();
+  }));
+  document.querySelectorAll("#snd button").forEach((b) => b.addEventListener("click", () => {
+    S.sound = b.dataset.s === "1"; save(); paint(); if (S.sound) thud({ v: 6, kind: "die" });
+  }));
+  document.querySelectorAll("#skill button").forEach((b) =>
+    b.addEventListener("click", () => { S.skill = +b.dataset.r; save(); paint(); }));
+  const pickMode = (m) => () => { S.mode = m; save(); if (settingsOpen) setSettings(false); else paint(); };
+  $("tab-normal").addEventListener("click", pickMode("normal"));
+  $("tab-combat").addEventListener("click", pickMode("combat"));
+  $("tab-set").addEventListener("click", () => setSettings(!settingsOpen));
+  $("tab-hide").addEventListener("click", () => { hiddenRoll = !hiddenRoll; paint(); });
+  $("btn-exh").addEventListener("click", () => { S.exh = (S.exh + 1) % 3; save(); paint(); });
+  $("btn-fear").addEventListener("click", () => { S.fear = (S.fear + 1) % 3; save(); paint(); });
+  document.querySelectorAll("#dots-exh button").forEach((b) =>
+    b.addEventListener("click", () => { const l = +b.dataset.l; S.exh = S.exh === l ? l - 1 : l; save(); paint(); }));
+  document.querySelectorAll("#dots-fear button").forEach((b) =>
+    b.addEventListener("click", () => { const l = +b.dataset.l; S.fear = S.fear === l ? l - 1 : l; save(); paint(); }));
+  $("sdone").addEventListener("click", () => setSettings(false));
+  paint();
+
+  OBR.onReady(async () => {
+    myId = await OBR.player.getId();
+    const send = (msg, hidden) =>
+      OBR.broadcast.sendMessage(CHANNEL, msg, { destination: hidden ? "LOCAL" : "ALL" });
+
+    OBR.broadcast.onMessage(CHANNEL, (e) => {
+      const t = e.data.type;
+      if (t === "push") applyPush(cleanPush(e.data));
+      else if (t === "damage") applyDamage(cleanDamage(e.data));
+      else applyRoll(cleanRoll(e.data));
+    });
+
+    $("adjm").addEventListener("click", () => { adj = Math.max(0, adj - 1); updateUi(); });
+    $("adjp").addEventListener("click", () => { adj = Math.min(MAX_ATTACK, adj + 1); updateUi(); });
+
+    async function rollAttackValue() {
+      if (!isAttackPhase()) return;
+      $("roll").disabled = true;
+      const n = clamp(adj, 0, MAX_ATTACK);
+      const dice = Array.from({ length: n }, () => ({ v: randInt(6), hex: S.cw, pip: S.pw }));
+      const sum = dice.reduce((a, d) => a + d.v, 0);
+      await send({ type: "damage", id: state.id, name: await OBR.player.getName(), base: state.total, dice,
+        summary: n > 0 ? `Angriffswert ${sum} (${n}W6)` : "Angriff verfehlt" }, state.hidden);
+      setTimeout(() => { $("roll").disabled = false; }, 800);
+    }
+
+    $("roll").addEventListener("click", async () => {
+      if (isAttackPhase()) return rollAttackValue();
+      const dice = [];
+      const effW = Math.max(0, S.nw - S.exh);
+      for (let i = 0; i < effW; i++) dice.push({ k: "w", v: randInt(6), hex: S.cw, pip: S.pw });
+      if (S.fear > 0) for (let i = 0; i < S.fear; i++) dice.push({ k: "f", v: randInt(6), hex: S.cf, pip: S.pf });
+      else for (let i = 0; i < S.nm; i++) dice.push({ k: "m", v: randInt(6), hex: S.cm, pip: S.pm });
+      if (!dice.length && !S.skill) return;
+      const raw = dice.reduce((a, d) => a + hit(d), 0) + S.skill, total = Math.max(0, raw), mode = S.mode;
+      const msg = { type: "roll", id: crypto.randomUUID(), pid: myId, name: await OBR.player.getName(),
+        dice, skill: S.skill, exh: S.exh, total, raw, hidden: hiddenRoll, mode };
+      msg.summary = `${mode === "combat" ? "Angriff " : ""}${label(msg)}: ${plural(total)}`
+        + (mode === "combat" && total === 0 ? ", verfehlt" : "");
+      await send(msg, msg.hidden);
+    });
+
+    $("push").addEventListener("click", async () => {
+      if (!state || state.pushed) return;
+      $("push").disabled = true;
+      const changes = []; let delta = 0;
+      state.dice.forEach((d, i) => {
+        if (!pushable(d)) return;
+        const v = randInt(6);
+        changes.push([i, v]);
+        delta += pushDelta(d.k, v);
+      });
+      const raw = state.raw + delta, total = Math.max(0, raw);
+      await send({ type: "push", id: state.id, name: await OBR.player.getName(), changes, delta, total, raw,
+        summary: `Push: ${plural(total)} (${delta >= 0 ? "+" : ""}${delta})` }, state.hidden);
+    });
+  });
+</script>
+</body>
+</html>
