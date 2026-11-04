@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <body>
+    <script type="module">
+      import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+
+      const CHANNEL = "de.fadingage.dice";
+      const BASE = "https://fadingage.github.io/fading-age-dice/";
+      const MAX_SLOTS = 3, HEIGHT = 188, WIDTH = 224, GAP = 6, STAY = 11500;
+
+      OBR.onReady(async () => {
+        const myId = await OBR.player.getId();
+        const slots = []; // je Fenster: { rid, pid, until }
+        const rolls = new Map(); // fremde Würfe, damit Push und Angriffswert das Fenster später wieder öffnen können
+        const mine = new Set(); // Ids eigener Würfe, dafür gibt es weder Mini-Fenster noch Benachrichtigung
+        // Einstellung "Mini-Fenster" aus dem Panel (gleiche Herkunft, daher gleicher Speicher)
+        const setting = () => {
+          try { const m = JSON.parse(localStorage.getItem("fa-dice3") || "{}").mini; return ["all", "gm", "off"].includes(m) ? m : "all"; } catch { return "all"; }
+        };
+        const note = (r) => setTimeout(() => OBR.notification.show(`${r.name}: ${r.summary}`, "DEFAULT"), 2000);
+        const sid = (i) => `de.fadingage.dice.mini.${i}`;
+
+        const openMini = async (roll, later) => {
+          const now = Date.now();
+          // Fenster wählen: dasselbe Spieler-Fenster, sonst ein freies, sonst das älteste
+          const w = await OBR.viewport.getWidth(), h = await OBR.viewport.getHeight();
+          const n = Math.max(1, Math.min(MAX_SLOTS, Math.floor((h - 100) / (HEIGHT + GAP))));
+          let i = -1;
+          for (let k = 0; k < n; k++) if (slots[k] && slots[k].pid === roll.pid) { i = k; break; }
+          if (i < 0) for (let k = 0; k < n; k++) if (!slots[k] || slots[k].until < now) { i = k; break; }
+          if (i < 0) { i = 0; for (let k = 1; k < n; k++) if (slots[k].until < slots[i].until) i = k; }
+          slots[i] = { rid: roll.id, pid: roll.pid, until: now + STAY };
+          await OBR.popover.close(sid(i)).catch(() => {});
+          await OBR.popover.open({
+            id: sid(i), url: `${BASE}index.html?mini=1&s=${i}&m=${encodeURIComponent(JSON.stringify(roll))}${later ? `&d=${encodeURIComponent(JSON.stringify(later))}` : ""}`,
+            width: WIDTH, height: HEIGHT, anchorReference: "POSITION", anchorPosition: { left: w - 16, top: h - 84 - i * (HEIGHT + GAP) },
+            anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "BOTTOM" },
+            hidePaper: true, disableClickAway: true, marginThreshold: 0,
+          });
+        };
+
+        const handle = async (r) => {
+          const isRoll = r.type !== "push" && r.type !== "damage";
+          if (isRoll && r.pid === myId) { mine.add(r.id); if (mine.size > 60) mine.delete(mine.values().next().value); return; }
+          if (!isRoll && mine.has(r.id)) return;
+          const now = Date.now();
+
+          if (isRoll) {
+            if (r.hidden) return;
+            rolls.set(r.id, r); if (rolls.size > 30) rolls.delete(rolls.keys().next().value);
+          } else {
+            // Push und Angriffswert gehören zu einem schon offenen Mini-Fenster: nur dessen Anzeigedauer verlängern
+            const s = slots.find((x) => x && x.rid === r.id && x.until > now);
+            if (s) { s.until = now + STAY; return; }
+          }
+
+          let mini = setting() !== "off";
+          if (mini && setting() === "gm") mini = (await OBR.player.getRole()) === "GM";
+          if (!mini) { note(r); return; }
+          if (isRoll) return openMini(r, null);
+          // Das Fenster war schon zu: mit dem zugehörigen Wurf wieder öffnen
+          const roll = rolls.get(r.id);
+          if (roll) return openMini(roll, r); // beim Push startet das Fenster mit dem ursprünglichen Wurf und wendet den Push dann an
+          note(r);
+        };
+
+        // Nachrichten nacheinander abarbeiten, damit gleichzeitige Würfe sich nicht um dasselbe Fenster streiten
+        let chain = Promise.resolve();
+        OBR.broadcast.onMessage(CHANNEL, (event) => {
+          const r = event.data;
+          chain = chain.then(() => handle(r)).catch(() => { try { note(r); } catch { /* ignorieren */ } });
+        });
+      });
+    </script>
+  </body>
+</html>
