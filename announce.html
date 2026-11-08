@@ -22,6 +22,12 @@
   .n b { color: var(--acc); margin-left: 5px; }
   .sub { margin-top: 6px; font-size: 12px; color: var(--mut); }
   .big { font-size: 15px; font-weight: 700; color: var(--txt); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .cols .names { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .cols .n { display: flex; justify-content: space-between; gap: 6px; border-radius: 10px; text-align: left; }
+  .cols .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cols .n b { margin-left: 0; flex: none; }
+  .cols .grp { min-width: 0; }
 </style>
 </head>
 <body>
@@ -42,20 +48,15 @@
   if (m.k === "result") {
     stay = 18000;
     c.appendChild(mk("h1", "", "Initiative"));
-    const group = (title, arr, cls, extra) => {
-      const g = mk("div", "grp " + (cls || "")); g.appendChild(mk("div", "gh", title));
-      const row = mk("div", "names");
-      arr.forEach((e) => { const n = mk("span", "n", e.n); n.appendChild(mk("b", "", String(e.v))); row.appendChild(n); });
-      if (extra) row.appendChild(extra);
-      g.appendChild(row); c.appendChild(g);
+    const enemy = num(m.enemy), fast = list(m.fast), slow = list(m.slow).concat(list(m.same)).sort((a, b) => b.v - a.v);
+    const en = mk("div", "grp en"); en.appendChild(mk("div", "gh", "Gegner")); en.appendChild(mk("div", "big", String(enemy))); c.appendChild(en);
+    const col = (title, arr) => {
+      const g = mk("div", "grp"); g.style.marginTop = "0"; g.appendChild(mk("div", "gh", title)); const row = mk("div", "names");
+      arr.forEach((e) => { const n = mk("span", "n"); n.appendChild(mk("span", "nm", e.n)); n.appendChild(mk("b", "", String(e.v))); row.appendChild(n); });
+      if (!arr.length) row.appendChild(mk("span", "sub", "niemand"));
+      g.appendChild(row); return g;
     };
-    const fast = list(m.fast), same = list(m.same), slow = list(m.slow), enemy = num(m.enemy);
-    if (fast.length) group("Schnell", fast);
-    const en = mk("div", "grp en"); en.appendChild(mk("div", "gh", "Gegner"));
-    en.appendChild(mk("div", "big", String(enemy)));
-    if (same.length) { const row = mk("div", "names"); row.style.marginTop = "6px"; same.forEach((e) => { const n = mk("span", "n", e.n); n.appendChild(mk("b", "", String(e.v))); row.appendChild(n); }); en.appendChild(row); en.appendChild(mk("div", "sub", "gleichzeitig mit den Gegnern")); }
-    c.appendChild(en);
-    if (slow.length) group("Langsam", slow);
+    const cols = mk("div", "cols"); cols.appendChild(col("Schnell", fast)); cols.appendChild(col("Langsam", slow)); c.appendChild(cols);
   } else {
     c.appendChild(mk("h1", "", "Initiative!"));
     c.appendChild(mk("p", "", "Euer nächster Wurf zählt als Initiative."));

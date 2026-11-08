@@ -202,9 +202,6 @@
   #p-char .ed-add:disabled { opacity: .4; cursor: default; }
   #p-char .mbtn.warn { background: #b83a3a; border-color: #b83a3a; color: #fff; }
   #log { margin-top: 10px; max-height: 90px; overflow-y: auto; }
-  #lgrip { height: 16px; margin-top: 2px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; user-select: none; }
-  #lgrip::before { content: ""; width: 44px; height: 4px; border-radius: 2px; background: var(--line2); opacity: .7; }
-  #lgrip:hover::before, #lgrip.drag::before { opacity: 1; background: var(--acc); }
   .entry { padding: 6px 8px; margin-bottom: 6px; background: var(--panel); border-radius: 6px; font-size: 13px; }
   .chip { display: inline-block; padding: 1px 7px; margin: 3px 4px 0 0; border-radius: 10px;
     font-size: 12px; font-weight: 700; }
@@ -283,7 +280,7 @@
   html.mini body { padding: 0; background: var(--bg); overflow: hidden; position: relative; box-sizing: border-box; border: 3px solid var(--line2); border-radius: 16px; display: flex; flex-direction: column; }
   html.mini #main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   html.mini #tw { flex: none; } /* ein durchgehender Rahmen um das ganze Fenster */
-  html.mini .tabs, html.mini #settings, html.mini #log, html.mini #lgrip, html.mini #main > :not(.act), html.mini .abtn { display: none !important; }
+  html.mini .tabs, html.mini #settings, html.mini #log, html.mini #main > :not(.act), html.mini .abtn { display: none !important; }
   html.lite *, html.lite *::before, html.lite *::after { animation: none !important; transition: none !important; }
   html.mini #tray { height: 130px; }
   html.mini.nores #res { visibility: hidden; }
@@ -462,7 +459,7 @@
         <div class="seg" id="fir"><button data-s="flicker">Flackern</button><button data-s="steady">Ruhig</button><button data-s="off">Aus</button></div></div>
       <div class="srow"><span class="name">Verlauf</span>
         <div class="seg" id="his"><button data-s="1">An</button><button data-s="0">Aus</button></div></div>
-      <div class="srow"><span class="name" title="Wie hoch der Verlauf im Panel ist. Du kannst ihn auch unten am Griff mit der Maus ziehen">Verlaufshöhe</span>
+      <div class="srow"><span class="name" title="Wie hoch der Verlauf im Panel ist.">Verlaufshöhe</span>
         <div class="seg" id="lgh"><button data-s="0">Standard</button><button data-s="1">Lang</button></div></div>
       <div class="srow"><span class="name">Ton</span>
         <div class="seg" id="snd"><button data-s="1">An</button><button data-s="0">Aus</button></div></div>
@@ -497,7 +494,6 @@
   </div>
 
   <div id="log"></div>
-  <div id="lgrip" title="Ziehen, um den Verlauf größer oder kleiner zu machen. Doppelklick wechselt zwischen Standard und Lang"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js';document.head.appendChild(s)"></script>
@@ -1487,7 +1483,6 @@
     document.querySelectorAll("#mres button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.minires));
     document.querySelectorAll("#his button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.hist));
     $("log").hidden = !S.hist;
-    $("lgrip").hidden = !S.hist;
     document.querySelectorAll("#lgh button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === (S.logh > 90)));
     fitLog();
     document.documentElement.dataset.theme = S.theme;
@@ -1553,23 +1548,6 @@
   $("lgh").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
     S.logh = b.dataset.s === "1" ? LOGLONG : 90; save(); paint();
   }));
-  (() => {
-    const g = $("lgrip"), lg = $("log");
-    let y0 = 0, h0 = 0, on = false;
-    g.addEventListener("pointerdown", (e) => {
-      on = true; y0 = e.clientY; h0 = lg.getBoundingClientRect().height;
-      g.classList.add("drag"); try { g.setPointerCapture(e.pointerId); } catch {}
-      e.preventDefault();
-    });
-    g.addEventListener("pointermove", (e) => {
-      if (!on) return;
-      S.logh = clamp(h0 + (e.clientY - y0), 90, 1200);
-      fitLog();
-    });
-    const end = () => { if (!on) return; on = false; g.classList.remove("drag"); save(); paint(); };
-    g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
-    g.addEventListener("dblclick", () => { S.logh = S.logh > 90 ? 90 : LOGLONG; save(); paint(); });
-  })();
   function bindSeg(id, key, conv, after) {
     document.querySelectorAll(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
       S[key] = conv(b.dataset.s); save(); paint(); if (after) after();

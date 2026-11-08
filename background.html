@@ -94,9 +94,8 @@
               await OBR.popover.close(AID).catch(() => {});
             } else if (m.type === "result") {
               if (armedId() === id) { try { localStorage.removeItem(INIT_KEY); } catch { /* ignorieren */ } }
-              const r = { k: "result", enemy: Math.min(6, Math.max(1, parseInt(m.enemy) || 1)), fast: cleanList(m.fast), same: cleanList(m.same), slow: cleanList(m.slow) };
-              const groups = [r.fast, r.same, r.slow].filter((g) => g.length).length + 1;
-              await announce(r, 78 + groups * 34 + (r.fast.length + r.same.length + r.slow.length) * 8);
+              const r = { k: "result", enemy: Math.min(6, Math.max(1, parseInt(m.enemy) || 1)), fast: cleanList(m.fast), slow: cleanList(m.slow).concat(cleanList(m.same)) };
+              await announce(r, 150 + Math.max(r.fast.length, r.slow.length, 1) * 30);
             }
           } catch { /* ignorieren */ }
         });
