@@ -1,1 +1,192 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fading Age SL</title>
+<link rel="stylesheet" href="../theme.css">
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 12px; background: var(--bg); color: var(--txt); font-size: 14px; }
+  [hidden] { display: none !important; }
+  button, select { font-family: inherit; }
+  h1 { margin: 0 0 10px; font-size: 17px; color: var(--acc); letter-spacing: .3px; }
+  .go { width: 100%; padding: 10px; border: 0; border-radius: 8px; background: var(--acc); color: var(--onacc); font-weight: 700; font-size: 15px; cursor: pointer; }
+  .go:hover:not(:disabled) { background: var(--acc2); }
+  .go:disabled { opacity: .4; cursor: default; }
+  .go.alt { background: var(--alt); color: #fff; }
+  .go.alt:hover:not(:disabled) { background: var(--alt2); }
+  .ghost { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: inherit; cursor: pointer; font-size: 13px; }
+  .ghost:hover { border-color: var(--line2); }
+  .sec { margin: 14px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .5px; color: var(--mut); }
+  .prow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .prow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .st { flex: none; min-width: 52px; text-align: center; padding: 2px 8px; border-radius: 10px; font-size: 12px; color: var(--mut); border: 1px dashed var(--line2); }
+  .st.rdy { border-style: solid; color: var(--txt); }
+  .st.val { border-style: solid; background: var(--acc); border-color: var(--acc); color: var(--onacc); font-weight: 800; font-size: 14px; }
+  select { height: 28px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: inherit; font-size: 12px; width: 46px; }
+  .enemy { display: flex; align-items: center; gap: 8px; }
+  .step { display: flex; align-items: center; }
+  .step button { width: 34px; height: 38px; padding: 0; border: 1px solid var(--line); background: var(--panel); color: inherit; font-size: 18px; cursor: pointer; }
+  .step button:first-child { border-radius: 8px 0 0 8px; }
+  .step button:last-child { border-radius: 0 8px 8px 0; }
+  .step span { min-width: 44px; height: 38px; line-height: 38px; text-align: center; font-weight: 800; font-size: 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg); color: var(--acc); }
+  .enemy .go { flex: 1; width: auto; }
+  .grp { margin-bottom: 6px; padding: 7px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+  .grp.en { border-color: var(--alt2); box-shadow: 0 0 8px var(--alt); }
+  .gh { font-size: 11px; font-weight: 700; letter-spacing: .4px; color: var(--mut); margin-bottom: 4px; }
+  .names { display: flex; flex-wrap: wrap; gap: 4px 6px; min-height: 22px; }
+  .n { padding: 2px 9px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line2); font-weight: 700; font-size: 13px; }
+  .n b { color: var(--acc); margin-left: 5px; }
+  .none { color: var(--mut2); font-size: 12px; align-self: center; }
+  .btns { display: flex; gap: 8px; margin-top: 12px; }
+  .btns .go { flex: 1; width: auto; }
+  .hint { margin: 10px 0 0; font-size: 12px; line-height: 1.35; color: var(--mut); }
+  .warn { margin: 10px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.35; border-radius: 8px; border: 1px solid #b83a3a; background: rgba(184,58,58,.18); }
+</style>
+</head>
+<body>
+  <h1>Initiative</h1>
+  <p class="hint" id="notgm" hidden>Dieses Werkzeug ist für die SL. Als Spieler brauchst Du es nicht, die Ansage kommt über die Würfel-Extension.</p>
+  <div id="app">
+    <button class="go" id="start">Initiative ausrufen</button>
+    <div id="round" hidden>
+      <div class="warn" id="noack" hidden>Noch keine Rückmeldung von den Spielern. Haben sie die aktuelle Würfel-Extension (Version 1.48 oder neuer) eingebunden?</div>
+      <div class="sec">Spieler</div>
+      <div id="plist"></div>
+      <p class="hint" id="pnone" hidden>Es sind keine Spieler im Raum.</p>
+      <div class="sec">Gegner</div>
+      <div class="enemy">
+        <div class="step"><button id="em" aria-label="Weniger">-</button><span id="ev">?</span><button id="ep" aria-label="Mehr">+</button></div>
+        <button class="go alt" id="eroll">Gegner würfeln</button>
+      </div>
+      <div class="sec">Reihenfolge</div>
+      <div id="groups"></div>
+      <div class="btns"><button class="go" id="show">Für alle anzeigen</button><button class="ghost" id="end">Beenden</button></div>
+      <p class="hint" id="shown" hidden>Die Ansage wurde allen gezeigt.</p>
+    </div>
+  </div>
+<script type="module">
+  import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
 
+  const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
+  const THEMES = ["daemmerung", "wald", "glut", "frost", "asche", "mitternacht", "sumpf", "kupfer", "mohn", "gold"];
+  try { const t = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme; document.documentElement.dataset.theme = THEMES.includes(t) ? t : "daemmerung"; } catch { document.documentElement.dataset.theme = "daemmerung"; }
+  const $ = (id) => document.getElementById(id);
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const txt = (x) => String(x == null ? "?" : x).replace(/[\u0000-\u001f<>]/g, "").slice(0, 24);
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
+  function randInt(max) {
+    const limit = Math.floor(0x100000000 / max) * max, buf = new Uint32Array(1);
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    return (buf[0] % max) + 1;
+  }
+  const readJ = (k, fb) => { try { const o = JSON.parse(localStorage.getItem(k) || "null"); return o && typeof o === "object" ? o : fb; } catch { return fb; } };
+  const writeRound = () => { try { if (round) localStorage.setItem(ROUND, JSON.stringify(round)); else localStorage.removeItem(ROUND); } catch { /* ignorieren */ } };
+
+  let role = "", party = [], round = null, got = { id: "", p: {} };
+  function load() {
+    const r = readJ(ROUND, null);
+    round = r && typeof r.id === "string" ? { id: r.id.slice(0, 64), enemy: clamp(r.enemy, 0, 6), over: r.over && typeof r.over === "object" ? r.over : {}, shown: !!r.shown, t: +r.t || 0 } : null;
+    const g = readJ(GOT, { id: "", p: {} });
+    got = round && g.id === round.id && g.p ? g : { id: round ? round.id : "", p: {} };
+  }
+
+  // Zeilen: alle Spieler im Raum, dazu bekannte Spieler, die gerade nicht verbunden sind
+  function rows() {
+    const m = new Map();
+    party.forEach((p) => { if (p.role !== "GM") m.set(p.id, { id: p.id, n: txt(p.name) }); });
+    Object.keys(got.p || {}).forEach((id) => { if (!m.has(id)) m.set(id, { id, n: txt(got.p[id].n) }); });
+    return [...m.values()].map((r) => {
+      const g = (got.p && got.p[r.id]) || {}, o = round && round.over ? clamp(round.over[r.id], 0, 6) : 0;
+      return { ...r, ready: !!g.ready, v: o || clamp(g.v, 0, 6), manual: !!o };
+    });
+  }
+
+  function render() {
+    $("notgm").hidden = role !== "PLAYER"; $("app").hidden = role !== "GM";
+    $("start").textContent = round ? "Neue Initiative ausrufen" : "Initiative ausrufen";
+    $("round").hidden = !round;
+    if (!round) return;
+    const rs = rows();
+    $("plist").textContent = ""; $("pnone").hidden = rs.length > 0;
+    rs.forEach((r) => {
+      const row = mk("div", "prow"); row.appendChild(mk("div", "nm", r.n));
+      row.appendChild(mk("div", "st " + (r.v ? "val" : r.ready ? "rdy" : ""), r.v ? String(r.v) : r.ready ? "bereit" : "wartet"));
+      const s = mk("select"); s.title = "Wert von Hand setzen"; s.setAttribute("aria-label", "Wert von Hand setzen");
+      for (let v = 0; v <= 6; v++) { const o = mk("option", "", v ? String(v) : "-"); o.value = v; s.appendChild(o); }
+      s.value = round.over[r.id] ? clamp(round.over[r.id], 0, 6) : 0;
+      s.addEventListener("change", () => { const v = clamp(s.value, 0, 6); if (v) round.over[r.id] = v; else delete round.over[r.id]; writeRound(); render(); });
+      row.appendChild(s); $("plist").appendChild(row);
+    });
+    $("ev").textContent = round.enemy ? String(round.enemy) : "?";
+    // Gruppen: über dem Gegnerwurf schnell, darunter langsam, gleich = gleichzeitig mit den Gegnern
+    const en = round.enemy, byV = (a, b) => b.v - a.v || a.n.localeCompare(b.n);
+    const fast = en ? rs.filter((r) => r.v > en).sort(byV) : [], same = en ? rs.filter((r) => r.v && r.v === en).sort(byV) : [], slow = en ? rs.filter((r) => r.v && r.v < en).sort(byV) : [];
+    const wait = rs.filter((r) => !r.v);
+    $("groups").textContent = "";
+    const grp = (title, arr, cls, extra) => {
+      const g = mk("div", "grp " + (cls || "")); g.appendChild(mk("div", "gh", title)); const row = mk("div", "names");
+      arr.forEach((r) => { const n = mk("span", "n", r.n); n.appendChild(mk("b", "", String(r.v))); row.appendChild(n); });
+      if (!arr.length) row.appendChild(mk("span", "none", extra || "niemand"));
+      g.appendChild(row); $("groups").appendChild(g);
+    };
+    if (!en) $("groups").appendChild(mk("p", "hint", "Würfle zuerst für die Gegner, dann ordnen sich die Gruppen."));
+    else {
+      grp("Schnelle SCs", fast);
+      const g = mk("div", "grp en"); g.appendChild(mk("div", "gh", "Gegner")); const row = mk("div", "names"); row.appendChild(mk("span", "n", "Gegner")); row.lastChild.appendChild(mk("b", "", String(en)));
+      same.forEach((r) => { const n = mk("span", "n", r.n); n.appendChild(mk("b", "", String(r.v))); row.appendChild(n); });
+      g.appendChild(row); if (same.length) g.appendChild(mk("div", "hint", "Gleicher Wert: handelt gleichzeitig mit den Gegnern.")); $("groups").appendChild(g);
+      grp("Langsame SCs", slow);
+    }
+    if (wait.length) $("groups").appendChild(mk("p", "hint", "Ohne Wurf: " + wait.map((r) => r.n).join(", ")));
+    $("show").disabled = !en || !rs.some((r) => r.v);
+    $("shown").hidden = !round.shown;
+    $("noack").hidden = !(rs.length && Date.now() - round.t > 4000 && !rs.some((r) => r.ready));
+  }
+
+  const send = (m) => OBR.broadcast.sendMessage(INIT, m, { destination: "ALL" });
+  $("start").addEventListener("click", async () => {
+    round = { id: crypto.randomUUID(), enemy: 0, over: {}, shown: false, t: Date.now() };
+    got = { id: round.id, p: {} }; writeRound(); render();
+    try { localStorage.setItem(GOT, JSON.stringify(got)); } catch { /* ignorieren */ }
+    await send({ type: "start", id: round.id });
+    setTimeout(() => { load(); render(); }, 4200);
+  });
+  const setEnemy = (v) => { if (!round) return; round.enemy = clamp(v, 1, 6); round.shown = false; writeRound(); render(); };
+  $("em").addEventListener("click", () => setEnemy(round && round.enemy ? round.enemy - 1 : 1));
+  $("ep").addEventListener("click", () => setEnemy(round && round.enemy ? round.enemy + 1 : 1));
+  $("eroll").addEventListener("click", () => setEnemy(randInt(6)));
+  $("show").addEventListener("click", async () => {
+    if (!round || !round.enemy) return;
+    const en = round.enemy, rs = rows().filter((r) => r.v), pack = (a) => a.map((r) => ({ n: r.n, v: r.v })).sort((a, b) => b.v - a.v);
+    await send({ type: "result", id: round.id, enemy: en, fast: pack(rs.filter((r) => r.v > en)), same: pack(rs.filter((r) => r.v === en)), slow: pack(rs.filter((r) => r.v < en)) });
+    round.shown = true; writeRound(); render();
+  });
+  $("end").addEventListener("click", async () => {
+    if (!round) return;
+    const old = round.id; round = null; writeRound(); try { localStorage.removeItem(GOT); } catch { /* ignorieren */ }
+    render(); await send({ type: "cancel", id: old });
+  });
+  window.addEventListener("storage", (e) => { if (e.key === GOT || e.key === ROUND || e.key === null) { load(); render(); } });
+
+  OBR.onReady(async () => {
+    role = await OBR.player.getRole();
+    party = await OBR.party.getPlayers().catch(() => []);
+    OBR.party.onChange((p) => { party = p; render(); });
+    load(); render();
+    if (round && round.t) setTimeout(() => { load(); render(); }, Math.max(0, 4200 - (Date.now() - round.t)));
+    if (OBR.action && OBR.action.setHeight) {
+      let last = 0, tm = 0;
+      const fit = async () => {
+        const vh = await OBR.viewport.getHeight().catch(() => 700);
+        const h = Math.max(160, Math.min(Math.ceil(document.body.getBoundingClientRect().height) + 2, Math.max(160, vh - 20)));
+        if (Math.abs(h - last) < 2) return; last = h; OBR.action.setHeight(h).catch(() => {});
+      };
+      new ResizeObserver(() => { clearTimeout(tm); tm = setTimeout(() => fit().catch(() => {}), 60); }).observe(document.body);
+      fit().catch(() => {});
+    }
+  });
+</script>
+</body>
+</html>

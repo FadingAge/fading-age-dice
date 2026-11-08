@@ -1,0 +1,13 @@
+{
+  "name": "Fading Age SL",
+  "version": "0.1.0",
+  "manifest_version": 1,
+  "action": {
+    "title": "Fading Age SL",
+    "icon": "https://fadingage.github.io/fading-age-dice/sl/icon.svg",
+    "popover": "https://fadingage.github.io/fading-age-dice/sl/index.html",
+    "width": 300,
+    "height": 520
+  },
+  "background_url": "https://fadingage.github.io/fading-age-dice/sl/background.html"
+}
