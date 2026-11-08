@@ -39,6 +39,12 @@
   .grp.en { border-color: var(--alt2); box-shadow: 0 0 8px var(--alt); }
   .gh { font-size: 11px; font-weight: 700; letter-spacing: .4px; color: var(--mut); margin-bottom: 4px; }
   .names { display: flex; flex-wrap: wrap; gap: 4px 6px; min-height: 22px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .cols .grp { margin-bottom: 0; min-width: 0; }
+  .cols .names { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .cols .n { display: flex; justify-content: space-between; gap: 6px; border-radius: 10px; }
+  .cols .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cols .n b { margin-left: 0; flex: none; }
   .n { padding: 2px 9px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line2); font-weight: 700; font-size: 13px; }
   .n b { color: var(--acc); margin-left: 5px; }
   .none { color: var(--mut2); font-size: 12px; align-self: center; }
@@ -199,25 +205,19 @@
       row.appendChild(s); $("plist").appendChild(row);
     });
     $("ev").textContent = round.enemy ? String(round.enemy) : "?"; $("eh").hidden = !!round.enemy;
-    // Gruppen: über dem Gegnerwurf schnell, darunter langsam, gleich = gleichzeitig mit den Gegnern
+    // Zwei Spalten: links schnell (mehr als die Gegner), rechts langsam (gleich oder weniger)
     const en = round.enemy, byV = (a, b) => b.v - a.v || a.n.localeCompare(b.n);
-    const fast = en ? rs.filter((r) => r.v > en).sort(byV) : [], same = en ? rs.filter((r) => r.v && r.v === en).sort(byV) : [], slow = en ? rs.filter((r) => r.v && r.v < en).sort(byV) : [];
+    const fast = en ? rs.filter((r) => r.v > en).sort(byV) : [], slow = en ? rs.filter((r) => r.v && r.v <= en).sort(byV) : [];
     const wait = rs.filter((r) => !r.v);
     $("groups").textContent = "";
-    const grp = (title, arr, cls, extra) => {
-      const g = mk("div", "grp " + (cls || "")); g.appendChild(mk("div", "gh", title)); const row = mk("div", "names");
-      arr.forEach((r) => { const n = mk("span", "n", r.n); n.appendChild(mk("b", "", String(r.v))); row.appendChild(n); });
-      if (!arr.length) row.appendChild(mk("span", "none", extra || "niemand"));
-      g.appendChild(row); $("groups").appendChild(g);
+    const col = (title, arr) => {
+      const g = mk("div", "grp"); g.appendChild(mk("div", "gh", title)); const list = mk("div", "names");
+      arr.forEach((r) => { const n = mk("span", "n"); n.appendChild(mk("span", "nm", r.n)); n.appendChild(mk("b", "", String(r.v))); list.appendChild(n); });
+      if (!arr.length) list.appendChild(mk("span", "none", "niemand"));
+      g.appendChild(list); return g;
     };
     if (!en) $("groups").appendChild(mk("p", "hint", "Würfle zuerst für die Gegner, dann ordnen sich die Gruppen."));
-    else {
-      grp("Schnelle SCs", fast);
-      const g = mk("div", "grp en"); g.appendChild(mk("div", "gh", "Gegner")); const row = mk("div", "names"); row.appendChild(mk("span", "n", "Gegner")); row.lastChild.appendChild(mk("b", "", String(en)));
-      same.forEach((r) => { const n = mk("span", "n", r.n); n.appendChild(mk("b", "", String(r.v))); row.appendChild(n); });
-      g.appendChild(row); if (same.length) g.appendChild(mk("div", "hint", "Gleicher Wert: handelt gleichzeitig mit den Gegnern.")); $("groups").appendChild(g);
-      grp("Langsame SCs", slow);
-    }
+    else { const cols = mk("div", "cols"); cols.appendChild(col("Schnell", fast)); cols.appendChild(col("Langsam", slow)); $("groups").appendChild(cols); }
     if (wait.length) $("groups").appendChild(mk("p", "hint", "Ohne Wurf: " + wait.map((r) => r.n).join(", ")));
     $("show").disabled = !en || !rs.some((r) => r.v);
     $("shown").hidden = !round.shown;
@@ -239,7 +239,7 @@
   $("show").addEventListener("click", async () => {
     if (!round || !round.enemy) return;
     const en = round.enemy, rs = rows().filter((r) => r.v), pack = (a) => a.map((r) => ({ n: r.n, v: r.v })).sort((a, b) => b.v - a.v);
-    await send({ type: "result", id: round.id, enemy: en, fast: pack(rs.filter((r) => r.v > en)), same: pack(rs.filter((r) => r.v === en)), slow: pack(rs.filter((r) => r.v < en)) });
+    await send({ type: "result", id: round.id, enemy: en, fast: pack(rs.filter((r) => r.v > en)), slow: pack(rs.filter((r) => r.v <= en)) });
     round.shown = true; writeRound(); render();
   });
   $("end").addEventListener("click", async () => {
