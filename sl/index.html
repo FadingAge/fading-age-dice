@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fading Age SL</title>
+<link rel="stylesheet" href="../theme.css">
+<script src="../themes.js"></script>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 12px; background: var(--bg); color: var(--txt); font-size: 14px; }
+  [hidden] { display: none !important; }
+  button, select { font-family: inherit; }
+  h1 { margin: 0 0 10px; font-size: 17px; color: var(--acc); letter-spacing: .3px; }
+  .go { width: 100%; padding: 10px; border: 0; border-radius: 8px; background: var(--acc); color: var(--onacc); font-weight: 700; font-size: 15px; cursor: pointer; }
+  .go:hover:not(:disabled) { background: var(--acc2); }
+  .go:disabled { opacity: .4; cursor: default; }
+  .go.alt { background: var(--alt); color: #fff; }
+  .go.alt:hover:not(:disabled) { background: var(--alt2); }
+  .ghost { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: inherit; cursor: pointer; font-size: 13px; }
+  .ghost:hover { border-color: var(--line2); }
+  .sec { margin: 14px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .5px; color: var(--mut); }
+  .spl { display: flex; justify-content: space-between; padding-right: 8px; }
+  .spl span { font-weight: 400; letter-spacing: 0; color: var(--mut2); }
+  .prow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .prow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .st { flex: none; min-width: 52px; text-align: center; padding: 2px 8px; border-radius: 10px; font-size: 12px; color: var(--mut); border: 1px dashed var(--line2); }
+  .st.rdy { border-style: solid; color: var(--txt); }
+  .st.val { border-style: solid; background: var(--acc); border-color: var(--acc); color: var(--onacc); font-weight: 800; font-size: 14px; }
+  select { height: 28px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: inherit; font-size: 12px; width: 46px; }
+  .enemy { display: flex; align-items: center; gap: 8px; }
+  .step { display: flex; align-items: center; }
+  .step button { width: 34px; height: 38px; padding: 0; border: 1px solid var(--line); background: var(--panel); color: inherit; font-size: 18px; cursor: pointer; }
+  .step button:first-child { border-radius: 8px 0 0 8px; }
+  .step button:last-child { border-radius: 0 8px 8px 0; }
+  .step span { min-width: 44px; height: 38px; line-height: 38px; text-align: center; font-weight: 800; font-size: 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg); color: var(--acc); }
+  .enemy .go { flex: 1; width: auto; }
+  .grp { margin-bottom: 6px; padding: 7px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+  .grp.en { border-color: var(--alt2); box-shadow: 0 0 8px var(--alt); }
+  .gh { font-size: 11px; font-weight: 700; letter-spacing: .4px; color: var(--mut); margin-bottom: 4px; }
+  .names { display: flex; flex-wrap: wrap; gap: 4px 6px; min-height: 22px; }
+  .n { padding: 2px 9px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line2); font-weight: 700; font-size: 13px; }
+  .n b { color: var(--acc); margin-left: 5px; }
+  .none { color: var(--mut2); font-size: 12px; align-self: center; }
+  .btns { display: flex; gap: 8px; margin-top: 12px; }
+  .btns .go { flex: 1; width: auto; }
+  .hint { margin: 10px 0 0; font-size: 12px; line-height: 1.35; color: var(--mut); }
+  .warn { margin: 10px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.35; border-radius: 8px; border: 1px solid #b83a3a; background: rgba(184,58,58,.18); }
+
+  .tabs { display: flex; margin: 0 0 12px; }
+  .tabs button { flex: 1; padding: 8px 4px; border: 1px solid var(--line); background: var(--panel); color: var(--mut); font-size: 13px; font-weight: 700; cursor: pointer; margin-left: -1px; }
+  .tabs button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+  .tabs button:last-child { border-radius: 0 8px 8px 0; }
+  .tabs button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); position: relative; }
+  .wide { width: 100%; margin-top: 8px; }
+  /* Charakterkarten */
+  .ccard { margin-bottom: 8px; padding: 9px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+  .chd { display: flex; align-items: baseline; gap: 6px; }
+  .cn { flex: 1; min-width: 0; font-weight: 800; font-size: 15px; color: var(--acc); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cw { flex: none; font-size: 11px; color: var(--mut2); }
+  .tag { flex: none; font-size: 10px; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--line2); color: var(--mut); }
+  .mini { flex: none; padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--mut); font-size: 11px; cursor: pointer; }
+  .attrs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 8px; }
+  .ac { text-align: center; padding: 3px 0 4px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
+  .ac i { display: block; font-style: normal; font-size: 9px; color: var(--mut2); letter-spacing: .2px; }
+  .ac b { font-size: 15px; color: var(--txt); }
+  .lab { margin: 8px 0 3px; font-size: 11px; font-weight: 700; color: var(--mut); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chp { padding: 1px 8px; border-radius: 10px; font-size: 12px; background: var(--bg); border: 1px solid var(--line2); }
+  .chp b { color: var(--acc); margin-left: 4px; }
+  .chp.bad { border-color: #b5605e; }
+  .offline { padding: 6px 10px; margin-bottom: 6px; font-size: 12px; color: var(--mut2); border: 1px dashed var(--line); border-radius: 8px; }
+  /* Editor und Optionen */
+  input[type=text] { width: 100%; box-sizing: border-box; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: inherit; font-size: 13px; font-family: inherit; }
+  .erow { display: flex; gap: 5px; margin-bottom: 4px; align-items: center; }
+  .erow select { width: 58px; flex: none; }
+  .erow .x { flex: none; width: 28px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--mut); cursor: pointer; }
+  .egrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .egrid.k4 { grid-template-columns: repeat(4, 1fr); }
+  .egrid label { font-size: 9px; color: var(--mut2); text-align: center; }
+  .egrid select { width: 100%; }
+  .srow { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .srow .nm2 { flex: 1; font-size: 13px; }
+  .seg { display: flex; }
+  .seg button { padding: 5px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--mut); font-size: 12px; cursor: pointer; margin-left: -1px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-weight: 700; }
+  .themes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+  .themes button { height: 34px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer; padding: 0; }
+  .themes button.on { border-color: var(--txt); box-shadow: 0 0 0 2px var(--acc); }
+  .warn2 { background: #b5605e; border-color: #b5605e; color: #fff; }
+</style>
+</head>
+<body>
+  <nav class="tabs" id="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="set">Optionen</button></nav>
+  <p class="hint" id="notgm" hidden>Dieses Werkzeug ist für die SL. Als Spieler brauchst Du es nicht, die Ansage kommt über die Würfel-Extension.</p>
+  <div id="app">
+   <section id="v-init">
+    <button class="go" id="start">Initiative ausrufen</button>
+    <div id="round" hidden>
+      <div class="warn" id="noack" hidden>Noch keine Rückmeldung von den Spielern. Haben sie die aktuelle Würfel-Extension (Version 1.48 oder neuer) eingebunden?</div>
+      <div class="sec spl">Spieler<span>von Hand setzen</span></div>
+      <div id="plist"></div>
+      <p class="hint" id="pnone" hidden>Es sind keine Spieler im Raum.</p>
+      <div class="sec">Gegner</div>
+      <div class="enemy">
+        <div class="step"><button id="em" aria-label="Weniger">-</button><span id="ev">?</span><button id="ep" aria-label="Mehr">+</button></div>
+        <button class="go alt" id="eroll">Gegner würfeln</button>
+      </div>
+      <p class="hint" id="eh">Noch nicht gewürfelt. Würfle für die Gegner oder stelle den Wert von Hand ein.</p>
+      <div class="sec">Reihenfolge</div>
+      <div id="groups"></div>
+      <div class="btns"><button class="go" id="show">Für alle anzeigen</button><button class="ghost" id="end">Beenden</button></div>
+      <p class="hint" id="shown" hidden>Die Ansage wurde allen gezeigt.</p>
+    </div>
+   </section>
+   <section id="v-chars" hidden>
+    <div id="clist"></div>
+    <button class="ghost wide" id="cadd">Eigenen Charakter anlegen</button>
+    <p class="hint">Spieler teilen ihren Charakter automatisch. Eigene Charaktere liegen nur bei Dir.</p>
+   </section>
+   <section id="v-edit" hidden>
+    <div class="sec">Name</div><input type="text" id="e-name" maxlength="24" placeholder="Name">
+    <div class="sec">Attribute</div><div class="egrid" id="e-attrs"></div>
+    <div class="sec">Kampffertigkeiten</div><div class="egrid k4" id="e-kampf"></div>
+    <div class="sec">Makel</div><div id="e-x"></div>
+    <div class="sec">Fertigkeiten</div><div id="e-f"></div>
+    <div class="sec">Merkmale</div><div id="e-m"></div>
+    <div class="btns"><button class="go" id="e-done">Fertig</button><button class="ghost" id="e-del">Löschen</button></div>
+   </section>
+   <section id="v-set" hidden>
+    <div class="sec">Design</div>
+    <div class="seg" id="s-theme-auto"><button data-s="auto">Wie Würfel-Tracker</button><button data-s="own">Eigenes wählen</button></div>
+    <div class="themes" id="s-themes"></div>
+    <div class="sec">Im Charakter anzeigen</div>
+    <div id="s-show"></div>
+    <p class="hint">Spieler teilen immer alle Werte. Hier stellst Du nur ein, was Du in der Übersicht siehst.</p>
+   </section>
+  </div>
+<script type="module">
+  import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+
+  const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
+  import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal } from "./common.js";
+  const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
+  let set = readSet();
+  // Design: wie der Würfel-Tracker (gleiche Herkunft, gleicher Speicher) oder eigene Wahl
+  function applyTheme() {
+    let t = set.theme;
+    if (t === "auto" || !TH[t]) { try { t = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme; } catch { t = ""; } }
+    document.documentElement.dataset.theme = TH[t] ? t : "daemmerung";
+  }
+  applyTheme();
+  const $ = (id) => document.getElementById(id);
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const txt = (x) => String(x == null ? "?" : x).replace(/[\u0000-\u001f<>]/g, "").slice(0, 24);
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
+  function randInt(max) {
+    const limit = Math.floor(0x100000000 / max) * max, buf = new Uint32Array(1);
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    return (buf[0] % max) + 1;
+  }
+  const writeRound = () => { try { if (round) localStorage.setItem(ROUND, JSON.stringify(round)); else localStorage.removeItem(ROUND); } catch { /* ignorieren */ } };
+
+  let role = "", party = [], round = null, got = { id: "", p: {} };
+  function load() {
+    const r = readJ(ROUND, null);
+    round = r && typeof r.id === "string" ? { id: r.id.slice(0, 64), enemy: clamp(r.enemy, 0, 6), over: r.over && typeof r.over === "object" ? r.over : {}, shown: !!r.shown, t: +r.t || 0 } : null;
+    const g = readJ(GOT, { id: "", p: {} });
+    got = round && g.id === round.id && g.p ? g : { id: round ? round.id : "", p: {} };
+  }
+
+  // Zeilen: alle Spieler im Raum, dazu bekannte Spieler, die gerade nicht verbunden sind
+  function rows() {
+    const m = new Map();
+    party.forEach((p) => { if (p.role !== "GM") m.set(p.id, { id: p.id, n: txt(p.name) }); });
+    Object.keys(got.p || {}).forEach((id) => { if (!m.has(id)) m.set(id, { id, n: txt(got.p[id].n) }); });
+    return [...m.values()].map((r) => {
+      const g = (got.p && got.p[r.id]) || {}, o = round && round.over ? clamp(round.over[r.id], 0, 6) : 0;
+      return { ...r, ready: !!g.ready, v: o || clamp(g.v, 0, 6), manual: !!o };
+    });
+  }
+
+  function render() {
+    $("notgm").hidden = role !== "PLAYER"; $("app").hidden = role !== "GM"; $("tabs").hidden = role !== "GM";
+    $("start").textContent = round ? "Neue Initiative ausrufen" : "Initiative ausrufen";
+    $("round").hidden = !round;
+    if (!round) return;
+    const rs = rows();
+    $("plist").textContent = ""; $("pnone").hidden = rs.length > 0;
+    rs.forEach((r) => {
+      const row = mk("div", "prow"); row.appendChild(mk("div", "nm", r.n));
+      row.appendChild(mk("div", "st " + (r.v ? "val" : r.ready ? "rdy" : ""), r.v ? String(r.v) : r.ready ? "bereit" : "wartet"));
+      const s = mk("select"); s.title = "Wert von Hand setzen"; s.setAttribute("aria-label", "Wert von Hand setzen");
+      for (let v = 0; v <= 6; v++) { const o = mk("option", "", v ? String(v) : "-"); o.value = v; s.appendChild(o); }
+      s.value = round.over[r.id] ? clamp(round.over[r.id], 0, 6) : 0;
+      s.addEventListener("change", () => { const v = clamp(s.value, 0, 6); if (v) round.over[r.id] = v; else delete round.over[r.id]; writeRound(); render(); });
+      row.appendChild(s); $("plist").appendChild(row);
+    });
+    $("ev").textContent = round.enemy ? String(round.enemy) : "?"; $("eh").hidden = !!round.enemy;
+    // Gruppen: über dem Gegnerwurf schnell, darunter langsam, gleich = gleichzeitig mit den Gegnern
+    const en = round.enemy, byV = (a, b) => b.v - a.v || a.n.localeCompare(b.n);
+    const fast = en ? rs.filter((r) => r.v > en).sort(byV) : [], same = en ? rs.filter((r) => r.v && r.v === en).sort(byV) : [], slow = en ? rs.filter((r) => r.v && r.v < en).sort(byV) : [];
+    const wait = rs.filter((r) => !r.v);
+    $("groups").textContent = "";
+    const grp = (title, arr, cls, extra) => {
+      const g = mk("div", "grp " + (cls || "")); g.appendChild(mk("div", "gh", title)); const row = mk("div", "names");
+      arr.forEach((r) => { const n = mk("span", "n", r.n); n.appendChild(mk("b", "", String(r.v))); row.appendChild(n); });
+      if (!arr.length) row.appendChild(mk("span", "none", extra || "niemand"));
+      g.appendChild(row); $("groups").appendChild(g);
+    };
+    if (!en) $("groups").appendChild(mk("p", "hint", "Würfle zuerst für die Gegner, dann ordnen sich die Gruppen."));
+    else {
+      grp("Schnelle SCs", fast);
+      const g = mk("div", "grp en"); g.appendChild(mk("div", "gh", "Gegner")); const row = mk("div", "names"); row.appendChild(mk("span", "n", "Gegner")); row.lastChild.appendChild(mk("b", "", String(en)));
+      same.forEach((r) => { const n = mk("span", "n", r.n); n.appendChild(mk("b", "", String(r.v))); row.appendChild(n); });
+      g.appendChild(row); if (same.length) g.appendChild(mk("div", "hint", "Gleicher Wert: handelt gleichzeitig mit den Gegnern.")); $("groups").appendChild(g);
+      grp("Langsame SCs", slow);
+    }
+    if (wait.length) $("groups").appendChild(mk("p", "hint", "Ohne Wurf: " + wait.map((r) => r.n).join(", ")));
+    $("show").disabled = !en || !rs.some((r) => r.v);
+    $("shown").hidden = !round.shown;
+    $("noack").hidden = !(rs.length && Date.now() - round.t > 4000 && !rs.some((r) => r.ready));
+  }
+
+  const send = (m) => OBR.broadcast.sendMessage(INIT, m, { destination: "ALL" });
+  $("start").addEventListener("click", async () => {
+    round = { id: crypto.randomUUID(), enemy: 0, over: {}, shown: false, t: Date.now() };
+    got = { id: round.id, p: {} }; writeRound(); render();
+    try { localStorage.setItem(GOT, JSON.stringify(got)); } catch { /* ignorieren */ }
+    await send({ type: "start", id: round.id });
+    setTimeout(() => { load(); render(); }, 4200);
+  });
+  const setEnemy = (v) => { if (!round) return; round.enemy = clamp(v, 1, 6); round.shown = false; writeRound(); render(); };
+  $("em").addEventListener("click", () => setEnemy(round && round.enemy ? round.enemy - 1 : 1));
+  $("ep").addEventListener("click", () => setEnemy(round && round.enemy ? round.enemy + 1 : 1));
+  $("eroll").addEventListener("click", () => setEnemy(randInt(6)));
+  $("show").addEventListener("click", async () => {
+    if (!round || !round.enemy) return;
+    const en = round.enemy, rs = rows().filter((r) => r.v), pack = (a) => a.map((r) => ({ n: r.n, v: r.v })).sort((a, b) => b.v - a.v);
+    await send({ type: "result", id: round.id, enemy: en, fast: pack(rs.filter((r) => r.v > en)), same: pack(rs.filter((r) => r.v === en)), slow: pack(rs.filter((r) => r.v < en)) });
+    round.shown = true; writeRound(); render();
+  });
+  $("end").addEventListener("click", async () => {
+    if (!round) return;
+    const old = round.id; round = null; writeRound(); try { localStorage.removeItem(GOT); } catch { /* ignorieren */ }
+    render(); await send({ type: "cancel", id: old });
+  });
+  window.addEventListener("storage", (e) => {
+    if (e.key === GOT || e.key === ROUND || e.key === null) { load(); render(); }
+    if (e.key === KEYS.pchars || e.key === KEYS.local || e.key === null) renderChars();
+    if (e.key === "fa-dice3" || e.key === null) applyTheme();
+  });
+
+  // ---------- Ansichten ----------
+  let view = readJ(KEYS.tab, {}).v || "init", editing = null, delArmed = false;
+  const VIEWS = ["init", "chars", "edit", "set"];
+  function showView(v) {
+    view = VIEWS.includes(v) ? v : "init";
+    VIEWS.forEach((x) => { $("v-" + x).hidden = x !== view; });
+    document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.v === (view === "edit" ? "chars" : view)));
+    if (view !== "edit") writeJ(KEYS.tab, { v: view });
+    if (view === "chars") { renderChars(); OBR.broadcast.sendMessage(CH, { type: "charreq" }, { destination: "ALL" }).catch(() => {}); }
+    if (view === "set") renderSet();
+  }
+  document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.v)));
+
+  // ---------- Charakterübersicht ----------
+  function chips(items, cls) { const w = mk("div", "chips"); items.forEach((e) => { const c = mk("span", "chp " + (cls || ""), e.n); if (e.b) c.appendChild(mk("b", "", e.b)); w.appendChild(c); }); return w; }
+  function card(c, who, localId) {
+    const el = mk("div", "ccard"), hd = mk("div", "chd");
+    hd.appendChild(mk("div", "cn", c.n || "Ohne Namen"));
+    if (who) hd.appendChild(mk("div", "cw", who));
+    if (set.show.t && c.t !== "w") hd.appendChild(mk("div", "tag", ART[c.t]));
+    if (localId) { hd.appendChild(mk("div", "tag", "eigener")); const b = mk("button", "mini", "Bearbeiten"); b.addEventListener("click", () => openEditor(localId)); hd.appendChild(b); }
+    el.appendChild(hd);
+    if (set.show.a) { const g = mk("div", "attrs"); c.a.forEach((v, i) => { const a = mk("div", "ac"); a.title = ATTRS[i]; a.appendChild(mk("i", "", ATTR_SHORT[i])); a.appendChild(mk("b", "", String(v))); g.appendChild(a); }); el.appendChild(g); }
+    const sect = (label, items, cls) => { if (!items.length) return; el.appendChild(mk("div", "lab", label)); el.appendChild(chips(items, cls)); };
+    if (set.show.x) sect("Makel", c.x.filter(Boolean).map((n) => ({ n })), "bad");
+    if (set.show.f) sect("Fertigkeiten", c.f.map((e) => ({ n: e.n || "-", b: ROMAN[e.r] })));
+    if (set.show.k) sect("Kampffertigkeiten", KAMPF.map((n, i) => ({ n, b: ROMAN[c.k[i]], r: c.k[i] })).filter((e) => e.r > 0));
+    if (set.show.m) sect("Merkmale", c.m.map((e) => ({ n: e.n || "-", b: String(e.v) })));
+    return el;
+  }
+  function renderChars() {
+    const box = $("clist"); if (!box) return;
+    box.textContent = "";
+    const pc = readPChars(), seen = new Set();
+    party.filter((p) => p.role !== "GM").forEach((p) => {
+      const e = pc[p.id]; seen.add(p.id);
+      if (e && e.c) box.appendChild(card(e.c, txt(p.name), null));
+      else box.appendChild(mk("div", "offline", `${txt(p.name)}: noch kein Charakter geteilt`));
+    });
+    const loc = readLocal();
+    loc.forEach((l) => box.appendChild(card(l.c, "", l.id)));
+    if (!box.children.length) box.appendChild(mk("p", "hint", "Noch keine Charaktere. Sobald Spieler einen anlegen, erscheinen sie hier."));
+    $("cadd").disabled = loc.length >= MAX.chars;
+  }
+
+  // ---------- Eigene Charaktere anlegen und bearbeiten ----------
+  const saveLocal = (id, c) => { const l = readLocal(), i = l.findIndex((e) => e.id === id); if (i >= 0) l[i].c = c; else l.push({ id, c }); writeJ(KEYS.local, l); };
+  function openEditor(id) {
+    const l = readLocal().find((e) => e.id === id);
+    editing = { id: l ? l.id : crypto.randomUUID(), isNew: !l, c: l ? cleanChar(l.c) : cleanChar({ n: "Neuer Charakter" }) };
+    delArmed = false; $("e-del").textContent = editing.isNew ? "Abbrechen" : "Löschen"; $("e-del").classList.remove("warn2");
+    buildEditor(); showView("edit");
+  }
+  const mkSel = (opts, val, on, aria) => { const s = mk("select"); if (aria) s.setAttribute("aria-label", aria); opts.forEach(([v, n]) => { const o = mk("option", "", n); o.value = v; s.appendChild(o); }); s.value = val; s.addEventListener("change", () => on(+s.value)); return s; };
+  function buildEditor() {
+    const c = editing.c;
+    $("e-name").value = c.n; $("e-name").oninput = () => { c.n = ctxt($("e-name").value); };
+    const ag = $("e-attrs"); ag.textContent = "";
+    ATTRS.forEach((n, i) => { const w = mk("div"); w.appendChild(mk("label", "", ATTR_SHORT[i])); w.lastChild.style.display = "block"; w.appendChild(mkSel([1, 2, 3, 4, 5, 6, 7].map((v) => [v, String(v)]), c.a[i], (v) => { c.a[i] = v; }, n)); ag.appendChild(w); });
+    const kg = $("e-kampf"); kg.textContent = "";
+    KAMPF.forEach((n, i) => { const w = mk("div"); w.appendChild(mk("label", "", n)); w.lastChild.style.display = "block"; w.appendChild(mkSel([[0, "-"], [1, "I"], [2, "II"], [3, "III"]], c.k[i], (v) => { c.k[i] = v; }, n)); kg.appendChild(w); });
+    const list = (box, arr, max, label, opts, field, blank) => {
+      const draw = () => {
+        box.textContent = "";
+        arr.forEach((e, i) => {
+          const row = mk("div", "erow"), inp = mk("input"); inp.type = "text"; inp.maxLength = 24; inp.setAttribute("aria-label", label);
+          const isStr = typeof e === "string"; inp.value = isStr ? e : e.n;
+          inp.addEventListener("input", () => { const v = ctxt(inp.value); if (isStr) arr[i] = v; else e.n = v; });
+          row.appendChild(inp);
+          if (opts) row.appendChild(mkSel(opts, e[field], (v) => { e[field] = v; }, "Wert"));
+          const x = mk("button", "x", "×"); x.title = "Entfernen"; x.addEventListener("click", () => { arr.splice(i, 1); draw(); }); row.appendChild(x); box.appendChild(row);
+        });
+        const add = mk("button", "ghost wide", "+ " + label); add.disabled = arr.length >= max;
+        add.addEventListener("click", () => { arr.push(blank()); draw(); const ins = box.querySelectorAll("input"); if (ins.length) ins[ins.length - 1].focus(); });
+        box.appendChild(add);
+      };
+      draw();
+    };
+    list($("e-x"), c.x, MAX.x, "Makel", null, null, () => "");
+    list($("e-f"), c.f, MAX.f, "Fertigkeit", [[1, "I"], [2, "II"], [3, "III"]], "r", () => ({ n: "", r: 1 }));
+    list($("e-m"), c.m, MAX.m, "Merkmal", [[1, "1"], [2, "2"], [3, "3"]], "v", () => ({ n: "", v: 1 }));
+  }
+  $("cadd").addEventListener("click", () => openEditor(""));
+  $("e-done").addEventListener("click", () => { if (!editing) return; saveLocal(editing.id, cleanChar(editing.c)); editing = null; showView("chars"); });
+  $("e-del").addEventListener("click", () => {
+    if (!editing) return;
+    if (editing.isNew) { editing = null; showView("chars"); return; }
+    if (!delArmed) { delArmed = true; $("e-del").textContent = "Wirklich löschen?"; $("e-del").classList.add("warn2"); return; }
+    writeJ(KEYS.local, readLocal().filter((e) => e.id !== editing.id)); editing = null; showView("chars");
+  });
+
+  // ---------- Optionen ----------
+  const SHOW_LABELS = [["a", "Attribute"], ["x", "Makel"], ["f", "Fertigkeiten"], ["m", "Merkmale"], ["k", "Kampffertigkeiten"], ["t", "Art (Weltlicher, Verdammter, Abtrünniger)"]];
+  const saveSet = () => writeJ(KEYS.set, set);
+  function renderSet() {
+    const own = set.theme !== "auto" && !!TH[set.theme];
+    document.querySelectorAll("#s-theme-auto button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "own") === own));
+    const box = $("s-themes"); box.hidden = !own; box.textContent = "";
+    Object.keys(TH).forEach((k) => {
+      const b = mk("button"); b.title = TH[k][2]; b.setAttribute("aria-label", TH[k][2]);
+      b.style.background = `linear-gradient(135deg, ${TH[k][0]} 34%, ${TH[k][3]} 34% 67%, ${TH[k][1]} 67%)`; b.classList.toggle("on", k === set.theme);
+      b.addEventListener("click", () => { set.theme = k; saveSet(); applyTheme(); renderSet(); }); box.appendChild(b);
+    });
+    const sh = $("s-show"); sh.textContent = "";
+    SHOW_LABELS.forEach(([k, n]) => {
+      const row = mk("div", "srow"); row.appendChild(mk("div", "nm2", n));
+      const seg = mk("div", "seg");
+      [["1", "An"], ["0", "Aus"]].forEach(([v, l]) => { const b = mk("button", (v === "1") === set.show[k] ? "on" : "", l); b.addEventListener("click", () => { set.show[k] = v === "1"; saveSet(); renderSet(); }); seg.appendChild(b); });
+      row.appendChild(seg); sh.appendChild(row);
+    });
+  }
+  document.querySelectorAll("#s-theme-auto button").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.s === "auto") set.theme = "auto"; else if (set.theme === "auto") { try { set.theme = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme || "daemmerung"; } catch { set.theme = "daemmerung"; } }
+    saveSet(); applyTheme(); renderSet();
+  }));
+
+  OBR.onReady(async () => {
+    role = await OBR.player.getRole();
+    party = await OBR.party.getPlayers().catch(() => []);
+    OBR.party.onChange((p) => { party = p; render(); renderChars(); });
+    load(); render(); showView(view === "edit" ? "chars" : view);
+    if (round && round.t) setTimeout(() => { load(); render(); }, Math.max(0, 4200 - (Date.now() - round.t)));
+    if (OBR.action && OBR.action.setHeight) {
+      let last = 0, tm = 0;
+      const fit = async () => {
+        const vh = await OBR.viewport.getHeight().catch(() => 700);
+        const h = Math.max(160, Math.min(Math.ceil(document.body.getBoundingClientRect().height) + 2, Math.max(160, vh - 20)));
+        if (Math.abs(h - last) < 2) return; last = h; OBR.action.setHeight(h).catch(() => {});
+      };
+      new ResizeObserver(() => { clearTimeout(tm); tm = setTimeout(() => fit().catch(() => {}), 60); }).observe(document.body);
+      fit().catch(() => {});
+    }
+  });
+</script>
+</body>
+</html>
