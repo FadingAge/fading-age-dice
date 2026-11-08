@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fading Age Ansage</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  :root { color-scheme: normal; font-family: system-ui, sans-serif; }
+  html { background: transparent; }
+  body { margin: 0; padding: 14px 16px 16px; background: var(--bg); color: var(--txt); font-size: 14px; box-sizing: border-box;
+    border: 3px solid var(--line2); border-radius: 16px; position: relative; text-align: center; }
+  h1 { margin: 0 0 6px; font-size: 20px; letter-spacing: .5px; color: var(--acc); }
+  p { margin: 0; line-height: 1.35; color: var(--mut); }
+  #x { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--line); color: var(--txt); font-size: 16px; line-height: 1; cursor: pointer; }
+  .grp { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+  .grp.en { border-color: var(--alt2); box-shadow: 0 0 8px var(--alt); }
+  .gh { font-size: 12px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--mut); margin-bottom: 4px; }
+  .grp.en .gh { color: #fff; }
+  .names { display: flex; flex-wrap: wrap; gap: 4px 6px; justify-content: center; }
+  .n { padding: 2px 9px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line2); font-weight: 700; font-size: 13px; }
+  .n b { color: var(--acc); margin-left: 5px; }
+  .sub { margin-top: 6px; font-size: 12px; color: var(--mut); }
+  .big { font-size: 15px; font-weight: 700; color: var(--txt); }
+</style>
+</head>
+<body>
+  <button id="x" title="Schließen" aria-label="Schließen">&times;</button>
+  <div id="c"></div>
+<script type="module">
+  import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+  const ID = "de.fadingage.dice.announce", THEMES = ["daemmerung", "wald", "glut", "asche", "mitternacht", "kupfer", "mohn", "tinte", "mandarine"];
+  try { const t = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme; document.documentElement.dataset.theme = THEMES.includes(t) ? t : "daemmerung"; } catch { document.documentElement.dataset.theme = "daemmerung"; }
+  const txt = (x) => String(x == null ? "" : x).replace(/[\u0000-\u001f<>]/g, "").slice(0, 24);
+  const num = (x) => Math.min(6, Math.max(1, parseInt(x) || 1));
+  const list = (a) => (Array.isArray(a) ? a : []).slice(0, 12).map((e) => ({ n: txt(e && e.n), v: num(e && e.v) }));
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  let m = {};
+  try { m = JSON.parse(new URLSearchParams(location.search).get("m") || "{}") || {}; } catch { m = {}; }
+  const c = document.getElementById("c");
+  let stay = 9000;
+  if (m.k === "result") {
+    stay = 18000;
+    c.appendChild(mk("h1", "", "Initiative"));
+    const group = (title, arr, cls, extra) => {
+      const g = mk("div", "grp " + (cls || "")); g.appendChild(mk("div", "gh", title));
+      const row = mk("div", "names");
+      arr.forEach((e) => { const n = mk("span", "n", e.n); n.appendChild(mk("b", "", String(e.v))); row.appendChild(n); });
+      if (extra) row.appendChild(extra);
+      g.appendChild(row); c.appendChild(g);
+    };
+    const fast = list(m.fast), same = list(m.same), slow = list(m.slow), enemy = num(m.enemy);
+    if (fast.length) group("Schnell", fast);
+    const en = mk("div", "grp en"); en.appendChild(mk("div", "gh", "Gegner"));
+    en.appendChild(mk("div", "big", String(enemy)));
+    if (same.length) { const row = mk("div", "names"); row.style.marginTop = "6px"; same.forEach((e) => { const n = mk("span", "n", e.n); n.appendChild(mk("b", "", String(e.v))); row.appendChild(n); }); en.appendChild(row); en.appendChild(mk("div", "sub", "gleichzeitig mit den Gegnern")); }
+    c.appendChild(en);
+    if (slow.length) group("Langsam", slow);
+  } else {
+    c.appendChild(mk("h1", "", "Initiative!"));
+    c.appendChild(mk("p", "", "Euer nächster Wurf zählt als Initiative."));
+  }
+  OBR.onReady(() => {
+    const close = () => OBR.popover.close(ID).catch(() => {});
+    document.getElementById("x").addEventListener("click", close);
+    const fit = () => OBR.popover.setHeight(ID, Math.ceil(document.body.getBoundingClientRect().height) + 2).catch(() => {});
+    fit(); setTimeout(fit, 300);
+    setTimeout(close, stay);
+  });
+</script>
+</body>
+</html>
