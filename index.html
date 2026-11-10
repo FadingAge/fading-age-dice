@@ -166,7 +166,14 @@
   .ghead.r .clbl { margin: 0 2px 0 0; }
   .ghead .clbl { margin-bottom: 0; }
   .cgrid { display: grid; grid-template-columns: repeat(3, 1fr) 1.1fr; gap: 5px; align-items: stretch; margin-top: 4px; }
-  .cgrid .cchip.last { grid-column: 4; grid-row: 1 / span 2; align-self: center; }
+  .cmod { border: 1px dashed var(--line); border-radius: 8px; box-sizing: border-box; padding: 4px 0 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; }
+  .cmod small { font-size: 11px; color: var(--mut); }
+  .cmod.on { border-style: solid; border-color: var(--acc); }
+  .cmr { display: flex; align-items: center; justify-content: center; gap: 1px; }
+  .cmr b { min-width: 24px; text-align: center; font-size: 17px; color: var(--acc2); }
+  .cmr button { width: 18px; height: 22px; padding: 0; border: 0; background: none; color: var(--txt); font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit; }
+  .cmr button:disabled { opacity: .25; cursor: default; }
+  .cmr button:hover:not(:disabled) { color: var(--acc); }
   .ccols { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-top: 10px; align-items: start; }
   .clist { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .clist.locked { opacity: .3; pointer-events: none; filter: grayscale(.7); }
@@ -516,6 +523,9 @@
     return charView() && ch && picked.a >= 0 && S.nw === ch.a[picked.a] ? ATTRS[picked.a] : "";
   }
   function charView() { return S.charOpen && !!S.chars[S.ci]; } // Charakteransicht statt manueller Regler
+  // Zusatz-W6 (-3 bis +3) gibt es nur in der Charakteransicht; wirksame normale W6 = Attribut + Zusatz - Erschöpfung
+  const modW = () => (charView() ? S.wmod : 0);
+  const effW = () => Math.max(0, S.nw + modW() - S.exh);
   // Gewählte Waffenfertigkeit: n Nahkampf, f Fernkampf, s Schusswaffen (Verteidigen ist keine Waffe)
   function weapon() {
     const ch = S.chars[S.ci], m = /^k([123])$/.exec(picked.f);
@@ -581,7 +591,7 @@
     kup_bl:  { name: "Kupfer-Blau",         kind: "frame",   frame: "#dc8d63", fill: "#2a74b8", hex: "#2a74b8", pip: "#e9a57c", mat: "metal" },
   };
   const freshDefaults = () => ({ cw: "#e0b035", pw: "#1a1408", cm: "#b83a3a", pm: "#f5efe0", cf: "#5b3a8c", pf: "#f5efe0", cz: "#1f7a86", pz: "#f5efe0", dz: "none", zn: 2, un: 3, zp: false, zu: false,
-    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, logh: 90, exh: 0, fear: 0, mode: "normal" });
+    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
   // Gespeicherte Daten (Browser oder Sicherung) werden immer streng geprüft und auf Standardwerte aufgesetzt
   function readSaved(s) {
     const S = freshDefaults();
@@ -604,6 +614,7 @@
     if (s.vol !== undefined) S.vol = clamp(s.vol, 0, 100);
     if (s.exh !== undefined) S.exh = clamp(s.exh, 0, 2);
     if (s.fear !== undefined) S.fear = clamp(s.fear, 0, 2);
+    if (s.wmod !== undefined) S.wmod = clamp(s.wmod, -3, 3);
     if (s.mode === "combat" || s.mode === "magic") S.mode = s.mode;
     if (s.zn !== undefined) S.zn = clamp(s.zn, 1, 12);
     if (s.un !== undefined) S.un = clamp(s.un, 1, 12);
@@ -668,7 +679,7 @@
     if (c.m) p.push(c.m + "MW6");
     if (c.f) p.push(c.f + "FurchtW6");
     if (st.skill) p.push("Fertigkeit " + ROMAN[st.skill]);
-    return p.join(" + ") + (st.exh ? ` (Erschöpfung -${st.exh})` : "");
+    return p.join(" + ") + (st.exh ? ` (Erschöpfung -${st.exh})` : "") + (st.wmod ? ` (${st.wmod > 0 ? "+" : ""}${st.wmod}W6)` : "");
   }
 
   // ---------- 3D-Würfel ----------
@@ -1324,7 +1335,7 @@
     return { id: String(r.id).slice(0, 64), pid: String(r.pid || "").slice(0, 64),
       name: String(r.name || "?").slice(0, 40), hidden: !!r.hidden, pushed: false, done: false,
       mode: r.mode === "combat" ? "combat" : r.mode === "magic" ? "magic" : r.mode === "init" ? "init" : "normal", probe: !!r.probe, attr: ATTRS.includes(r.attr) ? r.attr : "",
-      skill: clamp(r.skill, 0, 3), exh: clamp(r.exh, 0, 2), total: Math.max(0, parseInt(r.total) || 0),
+      skill: clamp(r.skill, 0, 3), exh: clamp(r.exh, 0, 2), wmod: clamp(r.wmod, -3, 3), total: Math.max(0, parseInt(r.total) || 0),
       raw: Number.isFinite(parseInt(r.raw)) ? parseInt(r.raw) : Math.max(0, parseInt(r.total) || 0),
       dice: (Array.isArray(r.dice) ? r.dice : []).slice(0, 20)
         .map((d) => ({ k: d.k === "m" ? "m" : d.k === "f" ? "f" : d.k === "z" ? "z" : d.k === "u" ? "u" : d.k === "i" ? "i" : "w", ...cleanDie(d) })) };
@@ -1454,7 +1465,7 @@
         document.querySelectorAll("#zprobe button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.zp));
         $("zprobe").hidden = unl;
         $("z-lbl").textContent = unl ? "Entfesseln:" : "Korruption:"; $("z-n").textContent = S[zKey()];
-        const at = pickedAttr(), eff = at ? Math.max(0, S.nw - S.exh) : 0, sk = picked.f ? S.skill : 0;
+        const at = pickedAttr(), eff = at ? effW() : 0, sk = picked.f ? S.skill : 0;
         $("zinfo").textContent = unl ? "Macht zählt auf 4-6, Rückschlag auf 1-3. Beides wird getrennt gezählt."
           : !S.zp ? "Es zählt nur die Korruption: 1-2 bringt Korruption, 5-6 nimmt sie wieder weg."
           : (eff > 0 || sk > 0) ? "Probe: zusätzlich " + [eff > 0 ? `${at} ${eff}W6 (5-6 = 1 Erfolg)` : "", sk > 0 ? `Fertigkeit ${ROMAN[sk]} als feste Erfolge` : ""].filter(Boolean).join(" und ")
@@ -1603,7 +1614,13 @@
     // Attribute mit Erschöpfung
     const g1 = grp(); head(g1, "Attribute", statExh).classList.add("c", "s");
     const ga = mk("div", "cgrid"); g1.appendChild(ga);
-    ATTRS.forEach((n, i) => { const c = cchip("a", i, n, ch.a[i], String(ch.a[i]), picked.a === i && S.nw === ch.a[i], false, true); if (i === 6) c.classList.add("last"); ga.appendChild(c); });
+    const mod = mk("div", "cmod" + (S.wmod ? " on" : "")); mod.title = "Zusätzliche oder weniger W6 (-3 bis +3)";
+    mod.appendChild(mk("small", "", "W6 +/-"));
+    const mrow = mk("div", "cmr");
+    const mb = (txt, d, lbl) => { const b = mk("button", "", txt); b.type = "button"; b.dataset.d = d; b.setAttribute("aria-label", lbl); b.disabled = d < 0 ? S.wmod <= -3 : S.wmod >= 3; return b; };
+    mrow.appendChild(mb("-", -1, "Ein W6 weniger")); mrow.appendChild(mk("b", "", (S.wmod > 0 ? "+" : "") + S.wmod)); mrow.appendChild(mb("+", 1, "Ein W6 mehr"));
+    mod.appendChild(mrow);
+    ATTRS.forEach((n, i) => { const c = cchip("a", i, n, ch.a[i], String(ch.a[i]), picked.a === i && S.nw === ch.a[i], false, true); if (i === 3) ga.appendChild(mod); ga.appendChild(c); });
     // Merkmale (mit Furcht) links, Fertigkeiten rechts, jeweils als Liste
     const cols = mk("div", "ccols"); box.appendChild(cols);
     const hl = mk("div", "ghead"); hl.appendChild(mk("div", "clbl", "Merkmale")); hl.appendChild(statFear);
@@ -1636,6 +1653,8 @@
   $("charsel").addEventListener("change", () => { S.ci = clamp($("charsel").value, 0, S.chars.length - 1); picked = { a: -1, m: -1, f: "" }; save(); paint(); });
   // Antippen übernimmt den Wert in den Wurf (Attribut -> W6, Merkmal -> MW6, Fertigkeit -> Rang), nochmal Antippen nimmt ihn wieder heraus
   $("charcont").addEventListener("click", (e) => {
+    const mbtn = e.target.closest(".cmod button");
+    if (mbtn) { if (!mbtn.disabled) { S.wmod = clamp(S.wmod + +mbtn.dataset.d, -3, 3); save(); paint(); } return; }
     const b = e.target.closest(".cchip"); const ch = S.chars[S.ci]; if (!b || b.disabled || !ch || !b.dataset.k) return;
     const k = b.dataset.k, i = +b.dataset.i;
     if (k === "a") { if (picked.a === i && S.nw === ch.a[i]) { S.nw = 0; picked.a = -1; } else { S.nw = ch.a[i]; picked.a = i; } }
@@ -1875,17 +1894,17 @@
     async function rollMagic() {
       const cl = magicClass(), unl = cl === "a" && S.zu, probe = !unl && S.zp, dice = [];
       for (let i = 0; i < (unl ? S.un : S.zn); i++) dice.push({ k: unl ? "u" : "z", v: randInt(6), ...look("z") });
-      let skill = 0, exh = 0, attr = "";
+      let skill = 0, exh = 0, wmod = 0, attr = "";
       if (probe) { // Probe: zusätzlich Attribut als W6 (5-6 = 1 Erfolg) und Fertigkeit als feste Erfolge, kein Merkmal
         attr = pickedAttr(); // nur ein angetipptes Attribut zählt
-        const effW = attr ? Math.max(0, S.nw - S.exh) : 0;
-        for (let i = 0; i < effW; i++) dice.push({ k: "w", v: randInt(6), ...look("w") });
-        if (effW) exh = S.exh; else attr = "";
+        const nW = attr ? effW() : 0;
+        for (let i = 0; i < nW; i++) dice.push({ k: "w", v: randInt(6), ...look("w") });
+        if (nW) { exh = S.exh; wmod = modW(); } else attr = "";
       }
       if (probe && picked.f) skill = S.skill; // nur eine angetippte Fertigkeit zählt
       const raw = probe ? dice.reduce((a, d) => a + hit(d), 0) + skill : 0;
       const msg = { type: "roll", id: crypto.randomUUID(), pid: myId, name: await OBR.player.getName(),
-        dice, skill, exh, total: raw, raw, hidden: hiddenRoll, mode: "magic", probe, attr };
+        dice, skill, exh, wmod, total: raw, raw, hidden: hiddenRoll, mode: "magic", probe, attr };
       const L = magicLines(msg);
       msg.summary = `${label(msg)}: ${[L.txt, ...L.subs].join(", ")}`;
       await send(msg, msg.hidden);
@@ -1908,14 +1927,14 @@
       if (isAttackPhase()) return rollAttackValue();
       if (curMode() === "magic") return rollMagic();
       const dice = [];
-      const effW = Math.max(0, S.nw - S.exh);
-      for (let i = 0; i < effW; i++) dice.push({ k: "w", v: randInt(6), ...look("w") });
+      const nW = effW();
+      for (let i = 0; i < nW; i++) dice.push({ k: "w", v: randInt(6), ...look("w") });
       if (S.fear > 0) for (let i = 0; i < S.fear; i++) dice.push({ k: "f", v: randInt(6), ...look("f") });
       else for (let i = 0; i < S.nm; i++) dice.push({ k: "m", v: randInt(6), ...look("m") });
       if (!dice.length && !S.skill) return;
       const raw = dice.reduce((a, d) => a + hit(d), 0) + S.skill, pan = panic(dice), total = pan ? 0 : Math.max(0, raw), mode = combatRoll() ? "combat" : "normal";
       const msg = { type: "roll", id: crypto.randomUUID(), pid: myId, name: await OBR.player.getName(),
-        dice, skill: S.skill, exh: S.exh, total, raw, hidden: hiddenRoll, mode, attr: pickedAttr() };
+        dice, skill: S.skill, exh: S.exh, wmod: nW ? modW() : 0, total, raw, hidden: hiddenRoll, mode, attr: pickedAttr() };
       msg.summary = `${mode === "combat" ? "Angriff " : ""}${label(msg)}: ${outcome(total, raw, pan)}`
         + (mode === "combat" && total === 0 && !pan ? ", verfehlt" : "");
       await send(msg, msg.hidden);
