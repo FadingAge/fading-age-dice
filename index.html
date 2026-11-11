@@ -26,6 +26,10 @@
   #tab-hide { justify-self: start; grid-column: 1; }
   .hid-line { display: none; }
   #tab-hide.active .hid-line { display: block; }
+  .q-mark { display: none; }
+  #tab-hide.mask .hid-line { display: none; }
+  #tab-hide.mask circle { display: none; }
+  #tab-hide.mask .q-mark { display: block; }
   .tab svg { width: 22px; height: 22px; flex: none; }
   .tab.active { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
   #initbar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 7px 8px 7px 12px; border-radius: 10px; background: var(--alt); border: 1.5px solid var(--alt2);
@@ -321,6 +325,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
         <path class="hid-line" d="M4 4l16 16"/>
+        <text class="q-mark" x="12" y="15.3" text-anchor="middle" font-size="9.5" font-weight="700" stroke="none" fill="currentColor">?</text>
       </svg>
     </button>
     <div class="switch" style="grid-column:2">
@@ -353,7 +358,7 @@
   <div id="initbar" hidden><span>Initiative! Euer nächster Wurf zählt als Initiative.</span><button id="initx" title="Verwerfen" aria-label="Initiative verwerfen">&times;</button></div>
   <div id="tw"><canvas id="tray"></canvas>
     <button id="reset" title="Tisch leeren" aria-label="Tisch leeren" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
-    <button id="clearsel" title="Auswahl zurücksetzen (Attribut, Merkmal, Fertigkeit)" aria-label="Auswahl zurücksetzen" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg></button>
+    <button id="clearsel" title="Auswahl und Würfel zurücksetzen" aria-label="Auswahl zurücksetzen" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg></button>
     <button id="miniclose" title="Schließen" aria-label="Schließen">&times;</button>
     <button id="fxbtn" hidden title="Effektwürfel mitwürfeln (wenn der SL es verlangt)" aria-label="Effektwürfel"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M12 2l2.2 5.3 5.3-2.2-2.2 5.3L22 12l-5.3 2.2 2.2 5.3-5.3-2.2L12 22l-2.2-5.3-5.3 2.2 2.2-5.3L2 12l5.3-2.2-2.2-5.3 5.3 2.2z"/></svg></button>
     <div id="fxmark" hidden title="Effektwürfel"><span id="fxnum"></span><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M12 2l2.2 5.3 5.3-2.2-2.2 5.3L22 12l-5.3 2.2 2.2 5.3-5.3-2.2L12 22l-2.2-5.3-5.3 2.2 2.2-5.3L2 12l5.3-2.2-2.2-5.3 5.3 2.2z"/></svg></div></div>
@@ -869,7 +874,7 @@
       const col = P ? P.pip : pip;
       const mark = (dx, dy, color) => {
         g.fillStyle = color;
-        if (style === "num") { g.font = "bold 80px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(v), 64 + dx, 70 + dy); }
+        if (style === "num" || style === "q") { g.font = "bold 80px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(style === "q" ? "?" : String(v), 64 + dx, 70 + dy); }
         else PIPS[v].forEach(([x, y]) => { g.beginPath(); g.arc(32 * (x + 1) + dx, 32 * (y + 1) + dy, 10, 0, 7); g.fill(); });
       };
       if (look && look.halo) { g.shadowColor = look.halo; g.shadowBlur = 7; mark(0, 0, col); g.shadowBlur = 0; }
@@ -1046,7 +1051,7 @@
   function setGlow(m) { // weiß bei Erfolg, rot bei negativen Erfolgen (FurchtW6 mit 1-2, gepushte W6/MW6 mit 1-2)
     const d = m.userData, h = d.k === "u" ? (d.v >= 4 ? 1 : -1) : d.k === "z" ? (d.v >= 5 ? 1 : d.v <= 2 ? -1 : 0) : d.k ? hit({ k: d.k, v: d.v }) : 0;
     const neg = h < 0 || (d.pushed && (d.k === "w" || d.k === "m") && d.v <= 2);
-    d.glowOn = !!(!S.lite && S.glow !== "off" && !rollPanic && (h > 0 || (neg && S.glow === "all")));
+    d.glowOn = !!(!d.q && !S.lite && S.glow !== "off" && !rollPanic && (h > 0 || (neg && S.glow === "all")));
     d.gm.forEach((x) => x.color.set(h > 0 ? 0xffffff : 0xff3a3a));
     d.gs.forEach((s) => { s.visible = d.glowOn; });
   }
@@ -1087,9 +1092,9 @@
     const cols = Math.min(n, 5), rows = Math.ceil(n / cols);
     rollPanic = panic(dice);
     dice.forEach((d, i) => {
-      const m = new THREE.Mesh(geo, materials(d.hex, d.pip, S.style, S.surf, d.pat));
+      const m = new THREE.Mesh(geo, materials(d.hex, d.pip, d.q ? "q" : S.style, S.surf, d.pat));
       m.userData = { tx: ((i % cols) - (cols - 1) / 2) * 1.5, tz: (Math.floor(i / cols) - (rows - 1) / 2) * 1.5,
-        hex: d.hex, pip: d.pip, pat: d.pat, k: d.k, pushed: !!d.pushed };
+        hex: d.hex, pip: d.pip, pat: d.pat, k: d.k, q: !!d.q, pushed: !!d.pushed };
       makeGlow(m); placeStatic(m, d.v); setGlow(m);
       const sh = new THREE.Mesh(shGeo, new THREE.MeshBasicMaterial({ map: shTex, transparent: true, depthWrite: false, opacity: 0 }));
       sh.rotation.x = -Math.PI / 2; m.userData.sh = sh;
@@ -1104,7 +1109,7 @@
   const showPush = (changes) => throwDice(changes.filter(([i]) => meshes[i]), true);
 
   function restyle() {
-    meshes.forEach((m) => { m.material = materials(m.userData.hex, m.userData.pip, S.style, S.surf, m.userData.pat); });
+    meshes.forEach((m) => { m.material = materials(m.userData.hex, m.userData.pip, m.userData.q ? "q" : S.style, S.surf, m.userData.pat); });
     renderer.render(scene, camera);
   }
 
@@ -1255,7 +1260,7 @@
   }
 
   // ---------- Zustand und Anzeige ----------
-  let myId = "", state = null, adj = 0, hiddenRoll = false;
+  let myId = "", state = null, adj = 0, hiddenRoll = false, maskRoll = false, isGM = false; // maskRoll (nur SL): andere sehen Würfel mit Fragezeichen
   // Ergebnis und Protokoll erscheinen erst nach den Würfen: 2 Sekunden Pause, dann 1 Sekunde Einblenden
   const REVEAL_MS = 2000;
   let revealing = false, revealT = 0, pending = [], effectOn = false;
@@ -1303,9 +1308,10 @@
         if (combat && state.total === 0 && state.raw >= 0 && !pan) subs.push("Angriff verfehlt");
       }
     }
+    if (state && state.mask) { txt = "?"; subs.length = 0; mtone = ""; }
     $("res").textContent = txt;
     subs.forEach((t) => { const d = document.createElement("span"); d.className = "sub"; d.textContent = t; $("res").appendChild(d); });
-    $("res").className = revealing || !state ? "" : state.done ? (state.n > 0 ? "pos" : "zero") : mtone || tone(state.total, state.raw, pan);
+    $("res").className = revealing || !state || state.mask ? "" : state.done ? (state.n > 0 ? "pos" : "zero") : mtone || tone(state.total, state.raw, pan);
     $("res").hidden = phase2; $("adjbox").hidden = !phase2;
     const can = !revealing && !pan && mine && state.mode !== "magic" && state.mode !== "init" && state.raw >= 0 && !state.pushed && !state.done && state.dice.some(pushable);
     $("push").disabled = !can;
@@ -1323,7 +1329,7 @@
     const wp = curMode() === "combat" && charView() ? skillIcon() : curMode() === "magic" ? "z" : "";
     if (wp) $("roll").dataset.wp = wp; else delete $("roll").dataset.wp;
     $("reset").hidden = !state || settingsOpen;
-    $("clearsel").hidden = !state || settingsOpen; $("clearsel").disabled = revealing || !(S.nw || S.nm || S.skill || S.wmod || picked.a >= 0 || picked.m >= 0 || picked.f);
+    $("clearsel").hidden = settingsOpen; $("clearsel").disabled = revealing || !(state || S.nw || S.nm || S.skill || S.wmod || picked.a >= 0 || picked.m >= 0 || picked.f);
     if (phase2) {
       $("adjv").textContent = adj;
       $("adjm").disabled = adj <= 0; $("adjp").disabled = adj >= MAX_ATTACK;
@@ -1333,10 +1339,10 @@
   const isAttackPhase = () => !!state && state.mode === "combat" && state.pid === myId
     && !state.done && state.total > 0 && curMode() === "combat";
 
-  const cleanDie = (d) => ({ v: clamp(d.v, 1, 6) || 1, hex: safe(d.hex), pip: safe(d.pip, "#f5efe0"), pat: PRESETS[d.pat] ? d.pat : "none" });
+  const cleanDie = (d) => ({ v: clamp(d.v, 1, 6) || 1, hex: safe(d.hex), pip: safe(d.pip, "#f5efe0"), pat: PRESETS[d.pat] ? d.pat : "none", q: !!d.q });
   function cleanRoll(r) {
     return { id: String(r.id).slice(0, 64), pid: String(r.pid || "").slice(0, 64),
-      name: String(r.name || "?").slice(0, 40), hidden: !!r.hidden, pushed: false, done: false,
+      name: String(r.name || "?").slice(0, 40), hidden: !!r.hidden, mask: !!r.mask, pushed: false, done: false,
       mode: r.mode === "combat" ? "combat" : r.mode === "magic" ? "magic" : r.mode === "init" ? "init" : "normal", probe: !!r.probe, attr: ATTRS.includes(r.attr) ? r.attr : "",
       skill: clamp(r.skill, 0, 3), exh: clamp(r.exh, 0, 2), wmod: clamp(r.wmod, -3, 3), total: Math.max(0, parseInt(r.total) || 0),
       raw: Number.isFinite(parseInt(r.raw)) ? parseInt(r.raw) : Math.max(0, parseInt(r.total) || 0),
@@ -1359,6 +1365,7 @@
 
   // Texte für den Verlauf (eigene und fremde Würfe)
   const rollEntry = (r) => {
+    if (r.mask) return [`<b class="who"></b> würfelt verdeckt (${r.dice.length} Würfel)`, r.name];
     if (r.mode === "init") return [`<b class="who"></b>: Initiative 1W6 = <b class="t-pos">${r.dice[0] ? r.dice[0].v : "?"}</b><div>${r.dice.map((d) => chip(d, false)).join("")}</div>`, r.name];
     if (r.mode === "magic") { const L = magicLines(r);
       return [`<b class="who"></b>: ${label(r)} = <b class="t-${L.tone}">${L.txt}</b>${L.subs.length ? ", " + L.subs.join(", ") : ""}<div>${r.dice.map((d) => chip(d)).join("")}</div>`, r.name]; }
@@ -1511,7 +1518,10 @@
     $("tab-combat").classList.toggle("active", curMode() === "combat" && !settingsOpen);
     $("tab-magic").classList.toggle("active", curMode() === "magic" && !settingsOpen);
     $("tab-set").classList.toggle("active", settingsOpen);
-    $("tab-hide").classList.toggle("active", hiddenRoll);
+    $("tab-hide").classList.toggle("active", hiddenRoll || maskRoll); $("tab-hide").classList.toggle("mask", maskRoll);
+    { const tip = maskRoll ? "Würfel verdeckt: andere sehen Würfel mit Fragezeichen, nur ich sehe das Ergebnis"
+        : hiddenRoll ? (isGM ? "Unsichtbar würfeln: nur ich sehe den Wurf" : "Verdeckt würfeln: nur ich sehe das Ergebnis") : isGM ? "Offen würfeln: alle sehen den Wurf" : "Verdeckt würfeln (nur ich sehe das Ergebnis)";
+      $("tab-hide").title = tip; $("tab-hide").setAttribute("aria-label", tip); }
     renderChar();
     updateUi();
   }
@@ -1653,10 +1663,11 @@
     if (revealing) return;
     state = null; adj = 0; effectOn = false; showMark(null); showStatic([]); updateUi();
   });
-  // Auswahl zurücksetzen: Attribut, Merkmal, Fertigkeit und Zusatz-W6 werden abgewählt (Erschöpfung und Furcht bleiben)
+  // Alles zurücksetzen: Attribut, Merkmal, Fertigkeit und Zusatz-W6 werden abgewählt (Erschöpfung und Furcht bleiben), die Würfel auf dem Tisch verschwinden
   $("clearsel").addEventListener("click", () => {
     if (revealing) return;
-    S.nw = 0; S.nm = 0; S.skill = 0; S.wmod = 0; picked = { a: -1, m: -1, f: "" }; save(); paint();
+    S.nw = 0; S.nm = 0; S.skill = 0; S.wmod = 0; picked = { a: -1, m: -1, f: "" }; save();
+    state = null; adj = 0; effectOn = false; showMark(null); showStatic([]); paint();
   });
   $("charsel").addEventListener("change", () => { S.ci = clamp($("charsel").value, 0, S.chars.length - 1); picked = { a: -1, m: -1, f: "" }; save(); paint(); });
   // Antippen übernimmt den Wert in den Wurf (Attribut -> W6, Merkmal -> MW6, Fertigkeit -> Rang), nochmal Antippen nimmt ihn wieder heraus
@@ -1809,7 +1820,14 @@
   document.querySelectorAll("#zmode button").forEach((b) => b.addEventListener("click", () => { S.zu = b.dataset.s === "1"; save(); paint(); }));
   document.querySelectorAll("#zprobe button").forEach((b) => b.addEventListener("click", () => { S.zp = b.dataset.s === "1"; save(); paint(); }));
   $("tab-set").addEventListener("click", () => setSettings(!settingsOpen));
-  $("tab-hide").addEventListener("click", () => { hiddenRoll = !hiddenRoll; paint(); });
+  // Spieler: offen / verdeckt. SL: offen -> Würfel mit Fragezeichen -> unsichtbar -> offen
+  $("tab-hide").addEventListener("click", () => {
+    if (!isGM) hiddenRoll = !hiddenRoll;
+    else if (!hiddenRoll && !maskRoll) maskRoll = true;
+    else if (maskRoll) { maskRoll = false; hiddenRoll = true; }
+    else hiddenRoll = false;
+    paint();
+  });
   const bump = (el) => { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); };
   $("btn-exh").addEventListener("click", () => { S.exh = (S.exh + 1) % 3; save(); paint(); bump($("btn-exh")); });
   $("btn-fear").addEventListener("click", () => { S.fear = (S.fear + 1) % 3; save(); paint(); bump($("btn-fear")); });
@@ -1834,7 +1852,7 @@
 
   OBR.onReady(async () => {
     myId = await OBR.player.getId();
-    try { if ((await OBR.player.getRole()) === "GM") $("shrow").hidden = true; } catch { /* ignorieren */ }
+    try { isGM = (await OBR.player.getRole()) === "GM"; if (isGM) $("shrow").hidden = true; paint(); } catch { /* ignorieren */ }
     if (MINI) $("tab-hide").hidden = true;
     // Panelhöhe passt sich dem Inhalt an (kein leerer Platz unten, z. B. auf dem Tablet)
     if (!MINI && OBR.action && OBR.action.setHeight) {
@@ -1851,6 +1869,10 @@
     }
     const send = (msg, hidden) =>
       OBR.broadcast.sendMessage(CHANNEL, msg, { destination: hidden ? "LOCAL" : "ALL" });
+    // Fragezeichen-Modus: die SL sieht den echten Wurf nur lokal, alle anderen bekommen Würfel ohne Werte und ohne Ergebnis
+    const sendMasked = (msg) => OBR.broadcast.sendMessage(CHANNEL, {
+      type: "roll", id: msg.id, pid: msg.pid, name: msg.name, mode: "normal", mask: true, hidden: false, skill: 0, exh: 0, total: 0, raw: 0, attr: "",
+      dice: msg.dice.map((d) => ({ k: d.k, v: 4, hex: d.hex, pip: d.pip, pat: d.pat, q: true })), summary: "würfelt verdeckt" }, { destination: "REMOTE" });
 
     // Im Panel zählt nur der eigene Wurf, fremde Würfe erscheinen im Verlauf. Gleichzeitiges Würfeln stört sich so nicht.
     const dispatch = (d) => {
@@ -1912,10 +1934,10 @@
       if (probe && picked.f) skill = S.skill; // nur eine angetippte Fertigkeit zählt
       const raw = probe ? dice.reduce((a, d) => a + hit(d), 0) + skill : 0;
       const msg = { type: "roll", id: crypto.randomUUID(), pid: myId, name: await OBR.player.getName(),
-        dice, skill, exh, wmod, total: raw, raw, hidden: hiddenRoll, mode: "magic", probe, attr };
+        dice, skill, exh, wmod, total: raw, raw, hidden: hiddenRoll || maskRoll, mode: "magic", probe, attr };
       const L = magicLines(msg);
       msg.summary = `${label(msg)}: ${[L.txt, ...L.subs].join(", ")}`;
-      await send(msg, msg.hidden);
+      const mk2 = maskRoll; await send(msg, msg.hidden); if (mk2) await sendMasked(msg).catch(() => {});
     }
 
     // Initiative: der nächste Wurf nach dem Aufruf der SL ist immer 1W6, unabhängig von der Auswahl
@@ -1942,10 +1964,10 @@
       if (!dice.length && !S.skill) return;
       const raw = dice.reduce((a, d) => a + hit(d), 0) + S.skill, pan = panic(dice), total = pan ? 0 : Math.max(0, raw), mode = combatRoll() ? "combat" : "normal";
       const msg = { type: "roll", id: crypto.randomUUID(), pid: myId, name: await OBR.player.getName(),
-        dice, skill: S.skill, exh: S.exh, wmod: nW ? modW() : 0, total, raw, hidden: hiddenRoll, mode, attr: pickedAttr() };
+        dice, skill: S.skill, exh: S.exh, wmod: nW ? modW() : 0, total, raw, hidden: hiddenRoll || maskRoll, mode, attr: pickedAttr() };
       msg.summary = `${mode === "combat" ? "Angriff " : ""}${label(msg)}: ${outcome(total, raw, pan)}`
         + (mode === "combat" && total === 0 && !pan ? ", verfehlt" : "");
-      await send(msg, msg.hidden);
+      const mk2 = maskRoll; await send(msg, msg.hidden); if (mk2) await sendMasked(msg).catch(() => {});
     });
 
     $("push").addEventListener("click", async () => {
