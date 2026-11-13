@@ -54,7 +54,7 @@
   .warn { margin: 10px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.35; border-radius: 8px; border: 1px solid #b83a3a; background: rgba(184,58,58,.18); }
 
   .tabs { display: flex; margin: 0 0 12px; }
-  .tabs button { flex: 1; padding: 8px 4px; border: 1px solid var(--line); background: var(--panel); color: var(--mut); font-size: 13px; font-weight: 700; cursor: pointer; margin-left: -1px; }
+  .tabs button { flex: 1; padding: 8px 2px; border: 1px solid var(--line); background: var(--panel); color: var(--mut); font-size: 12px; font-weight: 700; cursor: pointer; margin-left: -1px; }
   .tabs button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
   .tabs button:last-child { border-radius: 0 8px 8px 0; }
   .tabs button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); position: relative; }
@@ -95,11 +95,36 @@
   .themes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
   .themes button { height: 34px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer; padding: 0; }
   .themes button.on { border-color: var(--txt); box-shadow: 0 0 0 2px var(--acc); }
+  /* Infos zum Nachschlagen */
+  .isearch { display: flex; gap: 6px; margin-bottom: 8px; }
+  .isearch input { flex: 1; min-width: 0; }
+  .isearch .mini { height: 30px; }
+  .icat { margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
+  .icat > summary, .ient > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .icat > summary::-webkit-details-marker, .ient > summary::-webkit-details-marker { display: none; }
+  .icat > summary { padding: 9px 10px; font-weight: 800; font-size: 13px; letter-spacing: .3px; color: var(--acc); }
+  .icat > summary .ct { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--mut2); }
+  .chev { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(-45deg); transition: transform .15s; }
+  details[open] > summary > .chev { transform: rotate(45deg); }
+  .icat[open] > summary { border-bottom: 1px solid var(--line); }
+  .ient { border-top: 1px solid var(--line); }
+  .ient:first-of-type { border-top: 0; }
+  .ient > summary { padding: 8px 10px 8px 14px; font-size: 13px; font-weight: 700; }
+  .ient[open] > summary { color: var(--acc); }
+  .ib { padding: 0 12px 10px 14px; font-size: 13px; line-height: 1.45; color: var(--txt); }
+  .ib p { margin: 0 0 6px; }
+  .ib ul { margin: 0 0 6px; padding-left: 18px; }
+  .ib li { margin-bottom: 2px; }
+  .ib b { color: var(--acc); }
+  .ib .ea { display: flex; gap: 6px; margin-top: 8px; }
+  .ib textarea { width: 100%; box-sizing: border-box; min-height: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: inherit; font: inherit; font-size: 13px; resize: vertical; }
+  .ib input[type=text] { margin-bottom: 6px; }
+  .inone { padding: 8px 10px; font-size: 12px; color: var(--mut2); }
   .warn2 { background: #b5605e; border-color: #b5605e; color: #fff; }
 </style>
 </head>
 <body>
-  <nav class="tabs" id="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="set">Optionen</button></nav>
+  <nav class="tabs" id="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="info">Infos</button><button data-v="set">Optionen</button></nav>
   <p class="hint" id="notgm" hidden>Dieses Werkzeug ist für die SL. Als Spieler brauchst Du es nicht, die Ansage kommt über die Würfel-Extension.</p>
   <div id="app">
    <section id="v-init">
@@ -135,6 +160,11 @@
     <div class="sec">Merkmale</div><div id="e-m"></div>
     <div class="btns"><button class="go" id="e-done">Fertig</button><button class="ghost" id="e-del">Löschen</button></div>
    </section>
+   <section id="v-info" hidden>
+    <div class="isearch"><input type="text" id="i-q" placeholder="Suchen" aria-label="Suchen"><button class="mini" id="i-close" title="Alles zuklappen">Zuklappen</button></div>
+    <div id="ilist"></div>
+    <p class="hint">Die Texte kannst Du in der Datei infos.js ändern. Eigene Notizen bleiben nur in Deinem Browser.</p>
+   </section>
    <section id="v-set" hidden>
     <div class="sec">Design</div>
     <div class="seg" id="s-theme-auto"><button data-s="auto">Wie Würfel-Tracker</button><button data-s="own">Eigenes wählen</button></div>
@@ -148,7 +178,8 @@
   import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
 
   const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
-  import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal } from "./common.js";
+  import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
+  import { INFOS } from "./infos.js";
   const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
   let set = readSet();
   // Design: wie der Würfel-Tracker (gleiche Herkunft, gleicher Speicher) oder eigene Wahl
@@ -255,7 +286,7 @@
 
   // ---------- Ansichten ----------
   let view = readJ(KEYS.tab, {}).v || "init", editing = null, delArmed = false;
-  const VIEWS = ["init", "chars", "edit", "set"];
+  const VIEWS = ["init", "chars", "edit", "info", "set"];
   function showView(v) {
     view = VIEWS.includes(v) ? v : "init";
     VIEWS.forEach((x) => { $("v-" + x).hidden = x !== view; });
@@ -263,6 +294,7 @@
     if (view !== "edit") writeJ(KEYS.tab, { v: view });
     if (view === "chars") { renderChars(); OBR.broadcast.sendMessage(CH, { type: "charreq" }, { destination: "ALL" }).catch(() => {}); }
     if (view === "set") renderSet();
+    if (view === "info") renderInfo();
   }
   document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.v)));
 
@@ -343,6 +375,76 @@
     if (!delArmed) { delArmed = true; $("e-del").textContent = "Wirklich löschen?"; $("e-del").classList.add("warn2"); return; }
     writeJ(KEYS.local, readLocal().filter((e) => e.id !== editing.id)); editing = null; showView("chars");
   });
+
+  // ---------- Infos zum Nachschlagen ----------
+  let openSet = new Set(Array.isArray(readJ(KEYS.open, [])) ? readJ(KEYS.open, []).slice(0, 200).map(String) : []), noteEdit = null;
+  const saveOpen = () => writeJ(KEYS.open, [...openSet].slice(0, 200));
+  const inline = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
+  function body(text) {
+    const box = mk("div", "ib"); let ul = null;
+    String(text).split("\n").forEach((line) => {
+      if (/^- /.test(line)) { if (!ul) { ul = mk("ul"); box.appendChild(ul); } const li = mk("li"); inline(li, line.slice(2)); ul.appendChild(li); }
+      else if (line.trim()) { ul = null; const p = mk("p"); inline(p, line); box.appendChild(p); }
+    });
+    return box;
+  }
+  function detailsEl(cls, key, titleText, extra, force) {
+    const d = mk("details", cls), s = mk("summary"); s.appendChild(mk("span", "chev")); s.appendChild(mk("span", "", titleText));
+    if (extra) s.appendChild(mk("span", "ct", extra));
+    d.appendChild(s); d.open = force || openSet.has(key);
+    d.addEventListener("toggle", () => { if (force) return; if (d.open) openSet.add(key); else openSet.delete(key); saveOpen(); });
+    return d;
+  }
+  function noteEditor(n, isNew) {
+    const box = mk("div", "ib"), ti = mk("input"), ta = mk("textarea");
+    ti.type = "text"; ti.maxLength = 60; ti.placeholder = "Titel"; ti.value = n.t; ta.maxLength = 3000; ta.placeholder = "Text. Zeile mit - am Anfang = Listenpunkt, **fett** geht auch."; ta.value = n.b;
+    const row = mk("div", "ea"), ok = mk("button", "go", "Speichern"), del = mk("button", "ghost", isNew ? "Abbrechen" : "Löschen"); ok.style.flex = "1"; ok.style.padding = "7px";
+    let armed = false;
+    ok.addEventListener("click", () => {
+      const list = readNotes(), t = ctxt60(ti.value) || "Ohne Titel", i = list.findIndex((e) => e.id === n.id), v = { id: n.id, t, b: ta.value };
+      if (i >= 0) list[i] = v; else list.push(v);
+      writeJ(KEYS.notes, list); openSet.add("n:" + n.id); saveOpen(); noteEdit = null; renderInfo();
+    });
+    del.addEventListener("click", () => {
+      if (!isNew && !armed) { armed = true; del.textContent = "Wirklich löschen?"; del.classList.add("warn2"); return; }
+      if (!isNew) writeJ(KEYS.notes, readNotes().filter((e) => e.id !== n.id));
+      noteEdit = null; renderInfo();
+    });
+    row.append(ok, del); box.append(ti, ta, row); return box;
+  }
+  const ctxt60 = (x) => String(x == null ? "" : x).replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 60);
+  function renderInfo() {
+    const box = $("ilist"); if (!box) return;
+    const q = $("i-q").value.trim().toLowerCase(), find = !!q;
+    const hit = (...a) => !find || a.some((s) => String(s).toLowerCase().includes(q));
+    box.textContent = ""; let any = false;
+    INFOS.forEach((c, ci) => {
+      const catHit = hit(c.t), items = c.items.map((e, ei) => ({ e, ei })).filter(({ e }) => catHit || hit(e.t, e.b));
+      if (!items.length) return; any = true;
+      const d = detailsEl("icat", "c:" + ci, c.t, String(items.length), find);
+      items.forEach(({ e, ei }) => { const x = detailsEl("ient", "e:" + ci + ":" + ei, e.t, "", find); x.appendChild(body(e.b)); d.appendChild(x); });
+      box.appendChild(d);
+    });
+    // Eigene Notizen
+    const notes = readNotes().filter((n) => hit(n.t, n.b) || (noteEdit && noteEdit.id === n.id));
+    const nd = detailsEl("icat", "c:notes", "Eigene Notizen", String(notes.length), find || !!noteEdit);
+    if (!find || notes.length || noteEdit) {
+      notes.forEach((n) => {
+        if (noteEdit && noteEdit.id === n.id) { const x = detailsEl("ient", "n:" + n.id, n.t, "", true); x.appendChild(noteEditor(n, false)); nd.appendChild(x); return; }
+        const x = detailsEl("ient", "n:" + n.id, n.t, "", find); const b = body(n.b); const ea = mk("div", "ea"); const eb = mk("button", "mini", "Bearbeiten");
+        eb.addEventListener("click", () => { noteEdit = { id: n.id }; openSet.add("c:notes"); renderInfo(); }); ea.appendChild(eb); b.appendChild(ea); x.appendChild(b); nd.appendChild(x);
+      });
+      if (noteEdit && noteEdit.isNew) { const x = detailsEl("ient", "n:new", "Neue Notiz", "", true); x.appendChild(noteEditor({ id: noteEdit.id, t: "", b: "" }, true)); nd.appendChild(x); }
+      else if (!find) {
+        const add = mk("div", "ib"), ab = mk("button", "ghost wide", "+ Notiz hinzufügen"); ab.disabled = notes.length >= MAX.notes;
+        ab.addEventListener("click", () => { noteEdit = { id: crypto.randomUUID(), isNew: true }; openSet.add("c:notes"); renderInfo(); }); add.appendChild(ab); nd.appendChild(add);
+      }
+      box.appendChild(nd); any = true;
+    }
+    if (!any) box.appendChild(mk("div", "inone", "Nichts gefunden."));
+  }
+  $("i-q").addEventListener("input", renderInfo);
+  $("i-close").addEventListener("click", () => { $("i-q").value = ""; openSet.clear(); saveOpen(); renderInfo(); });
 
   // ---------- Optionen ----------
   const SHOW_LABELS = [["a", "Attribute"], ["x", "Makel"], ["f", "Fertigkeiten"], ["m", "Merkmale"], ["k", "Kampffertigkeiten"], ["t", "Art (Weltlicher, Verdammter, Abtrünniger)"]];

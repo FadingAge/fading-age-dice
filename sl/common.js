@@ -4,9 +4,9 @@ export const ATTR_SHORT = ["Kra", "Ges", "Prä", "Int", "Wil", "Sin", "Glü"];
 export const KAMPF = ["Verteidigen", "Nahkampf", "Fernkampf", "Schusswaffen"];
 export const ROMAN = ["", "I", "II", "III"];
 export const ART = { w: "Weltlicher", v: "Verdammter", a: "Abtrünniger" };
-export const MAX = { f: 24, m: 12, x: 12, chars: 12 };
+export const MAX = { f: 24, m: 12, x: 12, chars: 12, notes: 40 };
 export const CH = "de.fadingage.chars"; // Kanal: Spieler teilen ihren Charakter mit der SL
-export const KEYS = { pchars: "fa-sl-pchars", local: "fa-sl-lchars", set: "fa-sl-set", tab: "fa-sl-tab" };
+export const KEYS = { pchars: "fa-sl-pchars", local: "fa-sl-lchars", set: "fa-sl-set", tab: "fa-sl-tab", notes: "fa-sl-notes", open: "fa-sl-open" };
 
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
 export const txt = (x, n = 24) => String(x == null ? "" : x).replace(/[\u0000-\u001f<>]/g, "").slice(0, n);
@@ -38,3 +38,7 @@ export const readPChars = () => {
 };
 export const readLocal = () => (Array.isArray(readJ(KEYS.local, [])) ? readJ(KEYS.local, []) : []).slice(0, MAX.chars)
   .map((e) => ({ id: txt(e && e.id, 40) || crypto.randomUUID(), c: cleanChar(e && e.c) }));
+
+// Eigene Notizen der SL (nur lokal): Titel und Text
+export const readNotes = () => (Array.isArray(readJ(KEYS.notes, [])) ? readJ(KEYS.notes, []) : []).slice(0, MAX.notes)
+  .map((e) => ({ id: txt(e && e.id, 40) || crypto.randomUUID(), t: txt(e && e.t, 60), b: String((e && e.b) || "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f<>]/g, "").slice(0, 3000) }));
