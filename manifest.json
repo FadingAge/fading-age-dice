@@ -1,13 +1,13 @@
 {
-  "name": "Fading Age Würfel",
-  "version": "1.57.0",
+  "name": "Fading Age SL",
+  "version": "0.7.0",
   "manifest_version": 1,
   "action": {
-    "title": "Würfeln",
-    "icon": "https://fadingage.github.io/fading-age-dice/icon.svg",
-    "popover": "https://fadingage.github.io/fading-age-dice/index.html",
-    "width": 280,
-    "height": 780
+    "title": "Fading Age SL",
+    "icon": "https://fadingage.github.io/fading-age-dice/sl/icon.svg",
+    "popover": "https://fadingage.github.io/fading-age-dice/sl/index.html",
+    "width": 340,
+    "height": 520
   },
-  "background_url": "https://fadingage.github.io/fading-age-dice/background.html"
+  "background_url": "https://fadingage.github.io/fading-age-dice/sl/background.html"
 }
