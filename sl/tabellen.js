@@ -263,3 +263,15 @@ export const EFFEKTE = {
     ]},
   ],
 };
+
+// Ereignis- bzw. Ergebniswurf (1W6): Kategorie je Augenzahl
+export const EREIGNIS = ["Verzögerung", "Enthüllung", "Bedingungen", "Position", "Ressourcen", "Schaden"];
+
+// Hinterhalt: Ergebnis der Probe, darunter die erste Kampfrunde (Zeilen mit **fett** sind Auszeichnung)
+export const HINTERHALT = [
+  { t: "Kritischer Erfolg", l: ["**Angreifer:** Schnell", "**Verteidiger:** Nur 1 Aktion, keine Reaktion möglich"] },
+  { t: "Voller Erfolg", l: ["**Angreifer:** Schnell", "**Verteidiger:** Nur 1 Aktion"] },
+  { t: "Erfolg mit Konsequenz", l: ["Reguläre Initiative", "**Verteidiger:** Nur 1 Aktion"] },
+  { t: "Fehlschlag mit Konsequenz", l: ["Reguläre Initiative", "**Verteidiger:** Beginnen mit 2 Öffnungen"] },
+  { t: "Katastrophaler Fehlschlag", l: ["**Angreifer:** Nur 1 Aktion", "**Verteidiger:** Schnell"] },
+];

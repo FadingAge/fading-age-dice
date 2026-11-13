@@ -119,6 +119,8 @@
   .trow.hit .no { background: var(--acc); color: var(--onacc); border-color: var(--acc); }
   .trow .tx { flex: 1; min-width: 0; }
   .trow .tx b { color: var(--acc); }
+  .trow.tap { cursor: pointer; }
+  .hint.hi { margin: 0 0 8px; }
   .trow .tt { font-weight: 800; color: var(--acc); }
   .tag { margin-left: 5px; }
   .tag.perm { border-color: var(--warn, #e6c04a); color: var(--warn, #e6c04a); }
@@ -188,7 +190,7 @@
     <div class="btns"><button class="go" id="e-done">Fertig</button><button class="ghost" id="e-del">Löschen</button></div>
    </section>
    <section id="v-tab" hidden>
-    <nav class="subtabs" id="subtabs"><button data-t="rs">Rückschläge</button><button data-t="re">Reaktion</button><button data-t="wu">Wunden</button><button data-t="ef">Effekte</button><button data-t="no">Notizen</button></nav>
+    <nav class="subtabs" id="subtabs"><button data-t="rs">Rückschläge</button><button data-t="re">Reaktion</button><button data-t="wu">Wunden</button><button data-t="ef">Effekte</button><button data-t="ev">Ereignis</button><button data-t="hi">Hinterhalt</button><button data-t="no">Notizen</button></nav>
     <div id="tbody"></div>
    </section>
    <section id="v-set" hidden>
@@ -205,7 +207,7 @@
 
   const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
   import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
-  import { RUECK, REAKTION, REAKTION_MOD, WUNDEN, EFFEKTE } from "./tabellen.js";
+  import { RUECK, REAKTION, REAKTION_MOD, WUNDEN, EFFEKTE, EREIGNIS, HINTERHALT } from "./tabellen.js";
   const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
   let set = readSet();
   // Design: wie der Würfel-Tracker (gleiche Herkunft, gleicher Speicher) oder eigene Wahl
@@ -404,8 +406,8 @@
 
   // ---------- Tabellen zum Nachschlagen ----------
   const ROM = ["I", "II", "III", "IV", "V", "VI"], MODS_OK = REAKTION_MOD;
-  let tsub = readJ(KEYS.sub, {}), tres = { rs: {}, re: null, wu: null, ef: null }, noteEdit = null, rolling = false;
-  if (!["rs", "re", "wu", "ef", "no"].includes(tsub.t)) tsub.t = "rs";
+  let tsub = readJ(KEYS.sub, {}), tres = { rs: {}, re: null, wu: null, ef: null, ev: null, hi: -1 }, noteEdit = null, rolling = false;
+  if (!["rs", "re", "wu", "ef", "ev", "hi", "no"].includes(tsub.t)) tsub.t = "rs";
   tsub.s = clamp(tsub.s, 0, 5); tsub.m = MODS_OK.includes(tsub.m) ? tsub.m : 0; if (!tsub.a && tsub.a !== 0) tsub.a = -1; tsub.a = Math.min(5, Math.max(-1, parseInt(tsub.a)));
   const saveSub = () => writeJ(KEYS.sub, tsub);
   const rich = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
@@ -455,6 +457,24 @@
       r.appendChild(mk("div", "rg", e.a == null ? "≤ " + e.b : e.b == null ? e.a + "+" : e.a + "-" + e.b)); r.appendChild(mk("div", "tx big", e.t)); box.appendChild(r);
     });
     box.appendChild(mk("p", "hint", "Gewürfelt wird mit 3W6. Der Modifikator wird auf die Summe gerechnet und lässt sich auch nach dem Wurf noch ändern."));
+  }
+  function viewEv(box) {
+    const last = tres.ev;
+    box.appendChild(rollBar("Ergebnis würfeln (1W6)", 1, null, last && { dice: [last] }, (f) => { tres.ev = f[0]; renderTab(); setTimeout(hitScroll, 50); }));
+    EREIGNIS.forEach((t, i) => {
+      const r = mk("div", "trow" + (last === i + 1 ? " hit" : ""));
+      r.appendChild(mk("div", "no", String(i + 1))); r.appendChild(mk("div", "tx big", t)); box.appendChild(r);
+    });
+  }
+  // Hinterhalt: Zeile antippen hebt sie hervor (der Erfolg kommt aus der Probe, hier wird nicht gewürfelt)
+  function viewHi(box) {
+    box.appendChild(mk("p", "hint hi", "Ergebnis der Probe antippen, dann steht die erste Kampfrunde im Fokus."));
+    HINTERHALT.forEach((e, i) => {
+      const r = mk("div", "trow tap" + (tres.hi === i ? " hit" : "")), tx = mk("div", "tx");
+      tx.appendChild(mk("div", "tt", e.t));
+      e.l.forEach((l) => { const p = mk("div", "efx"); rich(p, l); tx.appendChild(p); });
+      r.appendChild(tx); r.addEventListener("click", () => { tres.hi = tres.hi === i ? -1 : i; renderTab(); }); box.appendChild(r);
+    });
   }
   function viewWu(box) {
     const last = tres.wu, a = last && tsub.a < 0 ? last.a : tsub.a, ch = mk("div", "achips");
@@ -533,7 +553,7 @@
     const box = $("tbody"); if (!box) return;
     document.querySelectorAll("#subtabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === tsub.t));
     box.textContent = "";
-    ({ rs: viewRs, re: viewRe, wu: viewWu, ef: viewEf, no: viewNo }[tsub.t] || viewRs)(box);
+    ({ rs: viewRs, re: viewRe, wu: viewWu, ef: viewEf, ev: viewEv, hi: viewHi, no: viewNo }[tsub.t] || viewRs)(box);
   }
   document.querySelectorAll("#subtabs button").forEach((b) => b.addEventListener("click", () => { tsub.t = b.dataset.t; saveSub(); noteEdit = null; renderTab(); }));
 
