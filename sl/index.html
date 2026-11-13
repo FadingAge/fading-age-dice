@@ -149,6 +149,19 @@
   .ncard .ib { padding: 0 12px 10px; }
   .chev { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(-45deg); transition: transform .15s; }
   details[open] > summary > .chev { transform: rotate(45deg); }
+  .pcard { margin-bottom: 8px; }
+  .prow2 { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 8px; }
+  .pst { flex: 1; text-align: center; } .pst .pl { font-size: 11px; font-weight: 700; color: var(--mut); margin-bottom: 3px; }
+  .pst .step { justify-content: center; } .pst .step button { width: 28px; height: 32px; font-size: 16px; } .pst .step span { min-width: 30px; height: 32px; line-height: 32px; font-size: 16px; }
+  .pdice { gap: 4px; } .pd { min-width: 24px; height: 26px; line-height: 26px; padding: 0 2px; text-align: center; border-radius: 6px; background: var(--bg); border: 1px solid var(--line2); font-size: 13px; font-weight: 800; color: var(--mut); }
+  .pd.hit { border-color: var(--acc); color: var(--acc); box-shadow: 0 0 6px var(--acc); } .pd.m { background: var(--alt); border-color: var(--alt2); } .pd.m.hit { border-color: var(--acc); }
+  .pd.s { border-color: var(--acc); color: var(--acc); } .pd.spin { opacity: .65; }
+  .psum { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: var(--acc); }
+  .pres { margin-top: 8px; } .pr { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding: 6px 9px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); border-left-width: 4px; font-size: 13px; }
+  .pr .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; } .pr .av { flex: none; color: var(--mut); font-size: 12px; } .pr .vd { flex: none; font-weight: 800; font-size: 12px; }
+  .pr.ok { border-left-color: var(--good, #8fd694); } .pr.ok .vd { color: var(--good, #8fd694); }
+  .pr.aff { border-left-color: var(--warn, #e6c04a); } .pr.aff .vd { color: var(--warn, #e6c04a); }
+  .pr.crit { border-left-color: var(--bad, #ff7a7a); background: rgba(184,58,58,.18); } .pr.crit .vd { color: var(--bad, #ff7a7a); }
   .warn2 { background: #b5605e; border-color: #b5605e; color: #fff; }
 </style>
 </head>
@@ -356,6 +369,78 @@
     loc.forEach((l) => box.appendChild(card(l.c, "", l.id)));
     if (!box.children.length) box.appendChild(mk("p", "hint", "Noch keine Charaktere. Sobald Spieler einen anlegen, erscheinen sie hier."));
     $("cadd").disabled = loc.length >= MAX.chars;
+    box.prepend(probePanel());
+  }
+
+  // ---------- SL-Probe: Wer ist betroffen? ----------
+  // Pool aus W6 (5-6 = 1 Erfolg), MW6 (5-6 = 2 Erfolge) und Fertigkeit (feste Erfolge). Die Erfolge werden gegen das Attribut jedes gewählten Charakters gehalten:
+  // Erfolge unter dem Attribut = nicht betroffen, Attribut oder Attribut +1 = betroffen, Attribut +2 oder mehr = kritisch betroffen.
+  const PKEY = "fa-sl-probe";
+  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, 0, 6), nw: clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
+  const saveProbe = () => writeJ(PKEY, probe);
+  let psel = null, proll = null; // psel: Auswahl (null = alle aktiven Spieler), proll: letzter Wurf
+  function targets() {
+    const pc = readPChars(), out = [];
+    party.filter((p) => p.role !== "GM").forEach((p) => { const e = pc[p.id]; if (e && e.c) out.push({ key: "p:" + p.id, name: txt(p.name), c: e.c, own: false }); });
+    readLocal().forEach((l) => out.push({ key: "l:" + l.id, name: txt(l.c.n) || "Ohne Namen", c: l.c, own: true }));
+    return out;
+  }
+  const hitsOf = (r) => r.dice.reduce((a, d) => a + (d.v >= 5 ? (d.k === "m" ? 2 : 1) : 0), 0) + r.sk;
+  function stepper(label, val, lo, hi, on) {
+    const w = mk("div", "pst"), s = mk("div", "step"), m = mk("button", "", "-"), p = mk("button", "", "+"), v = mk("span", "", String(val));
+    m.setAttribute("aria-label", label + " weniger"); p.setAttribute("aria-label", label + " mehr");
+    m.addEventListener("click", () => on(Math.max(lo, val - 1))); p.addEventListener("click", () => on(Math.min(hi, val + 1)));
+    s.append(m, v, p); w.append(mk("div", "pl", label), s); return w;
+  }
+  function probePanel() {
+    const det = mk("details", "ncard pcard"), sm = mk("summary"); sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "SL-Probe: Wer ist betroffen?")); det.appendChild(sm);
+    det.open = probe.open; det.addEventListener("toggle", () => { probe.open = det.open; saveProbe(); });
+    const b = mk("div", "ib");
+    b.appendChild(mk("div", "lab", "Attribut"));
+    const ac = mk("div", "achips");
+    ATTRS.forEach((n, i) => { const x = mk("button", i === probe.a ? "on" : "", n); x.addEventListener("click", () => { probe.a = i; saveProbe(); renderChars(); }); ac.appendChild(x); });
+    b.appendChild(ac);
+    const pr = mk("div", "prow2");
+    pr.appendChild(stepper("W6", probe.nw, 0, 20, (v) => { probe.nw = v; saveProbe(); renderChars(); }));
+    pr.appendChild(stepper("MW6", probe.nm, 0, 10, (v) => { probe.nm = v; saveProbe(); renderChars(); }));
+    pr.appendChild(stepper("Fertigkeit", probe.sk, 0, 3, (v) => { probe.sk = v; saveProbe(); renderChars(); }));
+    b.appendChild(pr);
+    const bar = mk("div", "rbar"), go = mk("button", "go", "Würfeln"), rd = mk("div", "rd pdice");
+    const draw = (dice, spin) => { rd.textContent = ""; dice.forEach((d) => rd.appendChild(mk("div", "pd " + d.k + (!spin && d.v >= 5 ? " hit" : "") + (spin ? " spin" : ""), String(d.v)))); };
+    if (proll) { draw(proll.dice, false); if (proll.sk) rd.appendChild(mk("div", "pd s", "+" + proll.sk)); }
+    go.disabled = !probe.nw && !probe.nm && !probe.sk;
+    go.addEventListener("click", () => {
+      if (rolling) return; rolling = true; go.disabled = true;
+      const final = [...Array(probe.nw)].map(() => ({ k: "w", v: randInt(6) })).concat([...Array(probe.nm)].map(() => ({ k: "m", v: randInt(6) }))); let k = 0;
+      const iv = setInterval(() => {
+        draw(final.map((d) => ({ k: d.k, v: randInt(6) })), true);
+        if (++k >= 8) { clearInterval(iv); rolling = false; proll = { dice: final, sk: probe.sk }; renderChars(); }
+      }, 60);
+    });
+    bar.append(go, rd); b.appendChild(bar);
+    if (proll) b.appendChild(mk("div", "psum", hitsOf(proll) + (hitsOf(proll) === 1 ? " Erfolg" : " Erfolge")));
+    // Ziele
+    const ts = targets(), def = new Set(ts.filter((t) => !t.own).map((t) => t.key)), sel = psel || def;
+    const hd = mk("div", "lab", "Wer wird geprüft?");
+    b.appendChild(hd);
+    const tc = mk("div", "achips");
+    const allb = mk("button", "", "Alle aktiven"), nob = mk("button", "", "Keine");
+    allb.addEventListener("click", () => { psel = new Set(def); renderChars(); }); nob.addEventListener("click", () => { psel = new Set(); renderChars(); });
+    tc.append(allb, nob);
+    ts.forEach((t) => { const x = mk("button", sel.has(t.key) ? "on" : "", t.name + (t.own ? " (eigener)" : "")); x.addEventListener("click", () => { const n = new Set(sel); if (n.has(t.key)) n.delete(t.key); else n.add(t.key); psel = n; renderChars(); }); tc.appendChild(x); });
+    b.appendChild(tc);
+    if (!ts.length) b.appendChild(mk("p", "hint", "Noch keine Charaktere zur Auswahl."));
+    if (proll) {
+      const S = hitsOf(proll), list = mk("div", "pres");
+      ts.filter((t) => sel.has(t.key)).forEach((t) => {
+        const A = t.c.a[probe.a], d = S - A, cls = d >= 2 ? "crit" : d >= 0 ? "aff" : "ok", lbl = d >= 2 ? "kritisch betroffen" : d >= 0 ? "betroffen" : "nicht betroffen";
+        const r = mk("div", "pr " + cls); r.appendChild(mk("div", "nm", t.name)); r.appendChild(mk("div", "av", ATTR_SHORT[probe.a] + " " + A)); r.appendChild(mk("div", "vd", lbl)); list.appendChild(r);
+      });
+      if (!list.children.length) list.appendChild(mk("p", "hint", "Niemand ausgewählt."));
+      b.appendChild(list);
+      b.appendChild(mk("p", "hint", "Betroffen ab Erfolge = Attribut, kritisch ab Attribut +2."));
+    }
+    det.appendChild(b); return det;
   }
 
   // ---------- Eigene Charaktere anlegen und bearbeiten ----------
