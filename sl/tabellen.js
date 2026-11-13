@@ -219,14 +219,18 @@ export const RUECK = {
  }
 };
 
-// Reaktion (3W6): von, bis, Ergebnis
+// Reaktion (3W6): a = ab, b = bis (null = nach unten bzw. oben offen), t = Ergebnis, c = Farbe
 export const REAKTION = [
+  { a: null, b: 2, t: "Katastrophal", c: "kat" },
   { a: 3, b: 5, t: "Negativ", c: "neg" },
   { a: 6, b: 8, t: "Ablehnend", c: "rej" },
   { a: 9, b: 12, t: "Neutral", c: "neu" },
   { a: 13, b: 15, t: "Interessiert", c: "int" },
   { a: 16, b: 18, t: "Positiv", c: "pos" },
+  { a: 19, b: null, t: "Hervorragend", c: "top" },
 ];
+// Modifikatoren, die die SL auf das Ergebnis geben kann
+export const REAKTION_MOD = [-4, -2, 0, 2, 4];
 
 // Wundfolgen: je Attribut 6 Folgen (1W6). Das Attribut selbst wird mit 1W6 in dieser Reihenfolge bestimmt.
 export const WUNDEN = [

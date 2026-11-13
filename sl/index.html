@@ -100,6 +100,7 @@
   .subtabs button { flex: 1 1 auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--mut); font-size: 12px; font-weight: 700; cursor: pointer; }
   .subtabs button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
   .stufen { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; }
+  .stufen.m5 { grid-template-columns: repeat(5, 1fr); }
   .stufen button, .achips button { padding: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--mut); font-size: 13px; font-weight: 800; cursor: pointer; }
   .stufen button.on, .achips button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
   .achips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
@@ -126,6 +127,7 @@
   .rg { flex: none; min-width: 42px; text-align: center; font-weight: 800; color: var(--mut); }
   .trow.neg { border-left: 4px solid var(--bad, #ff7a7a); } .trow.rej { border-left: 4px solid var(--warn, #e6c04a); }
   .trow.neu { border-left: 4px solid var(--mut2); } .trow.int { border-left: 4px solid #6cb4d9; } .trow.pos { border-left: 4px solid var(--good, #8fd694); }
+  .trow.kat { border-left: 4px solid var(--bad, #ff7a7a); background: rgba(184,58,58,.2); } .trow.top { border-left: 4px solid var(--good, #8fd694); background: rgba(80,170,100,.18); } .trow.hit.kat, .trow.hit.top { background: var(--alt); }
   .trow .big { font-size: 14px; font-weight: 700; }
   .efx { color: var(--mut); font-size: 12px; margin: 2px 0 0; } .efx i { font-style: normal; font-weight: 800; color: var(--acc); margin-right: 4px; }
   .egrp { margin-bottom: 6px; padding: 6px 6px 2px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); }
@@ -203,7 +205,7 @@
 
   const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
   import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
-  import { RUECK, REAKTION, WUNDEN, EFFEKTE } from "./tabellen.js";
+  import { RUECK, REAKTION, REAKTION_MOD, WUNDEN, EFFEKTE } from "./tabellen.js";
   const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
   let set = readSet();
   // Design: wie der Würfel-Tracker (gleiche Herkunft, gleicher Speicher) oder eigene Wahl
@@ -401,10 +403,10 @@
   });
 
   // ---------- Tabellen zum Nachschlagen ----------
-  const ROM = ["I", "II", "III", "IV", "V", "VI"];
+  const ROM = ["I", "II", "III", "IV", "V", "VI"], MODS_OK = REAKTION_MOD;
   let tsub = readJ(KEYS.sub, {}), tres = { rs: {}, re: null, wu: null, ef: null }, noteEdit = null, rolling = false;
   if (!["rs", "re", "wu", "ef", "no"].includes(tsub.t)) tsub.t = "rs";
-  tsub.s = clamp(tsub.s, 0, 5); if (!tsub.a && tsub.a !== 0) tsub.a = -1; tsub.a = Math.min(5, Math.max(-1, parseInt(tsub.a)));
+  tsub.s = clamp(tsub.s, 0, 5); tsub.m = MODS_OK.includes(tsub.m) ? tsub.m : 0; if (!tsub.a && tsub.a !== 0) tsub.a = -1; tsub.a = Math.min(5, Math.max(-1, parseInt(tsub.a)));
   const saveSub = () => writeJ(KEYS.sub, tsub);
   const rich = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
   const die = (v, cls, lbl) => { const d = mk("div", "d6 " + (cls || ""), String(v)); if (lbl) d.appendChild(mk("small", "", lbl)); return d; };
@@ -439,14 +441,20 @@
       tx.appendChild(t); tx.appendChild(mk("div", "", e.b)); r.appendChild(mk("div", "no", String(e.n))); r.appendChild(tx); box.appendChild(r);
     });
   }
+  const MODS = REAKTION_MOD, sg = (n) => (n > 0 ? "+" : n < 0 ? "-" : "") + Math.abs(n);
   function viewRe(box) {
-    const last = tres.re;
-    box.appendChild(rollBar("3W6 würfeln", 3, null, last && { dice: last.dice, sum: last.sum }, (f) => { tres.re = { dice: f, sum: f[0] + f[1] + f[2] }; renderTab(); setTimeout(hitScroll, 50); }));
+    const last = tres.re, mod = MODS.includes(tsub.m) ? tsub.m : 0, tot = last ? last.sum + mod : 0;
+    box.appendChild(mk("div", "sec", "Modifikator"));
+    const g = mk("div", "stufen m5");
+    MODS.forEach((m) => { const b = mk("button", m === mod ? "on" : "", sg(m)); b.addEventListener("click", () => { tsub.m = m; saveSub(); renderTab(); }); g.appendChild(b); });
+    box.appendChild(g);
+    const bar = rollBar("3W6 würfeln", 3, null, last && { dice: last.dice, sum: mod ? `${last.sum} ${sg(mod)} = ${tot}` : last.sum }, (f) => { tres.re = { dice: f, sum: f[0] + f[1] + f[2] }; renderTab(); setTimeout(hitScroll, 50); });
+    box.appendChild(bar);
     REAKTION.forEach((e) => {
-      const r = mk("div", "trow " + e.c + (last && last.sum >= e.a && last.sum <= e.b ? " hit" : ""));
-      r.appendChild(mk("div", "rg", e.a + "-" + e.b)); r.appendChild(mk("div", "tx big", e.t)); box.appendChild(r);
+      const r = mk("div", "trow " + e.c + (last && (e.a == null || tot >= e.a) && (e.b == null || tot <= e.b) ? " hit" : ""));
+      r.appendChild(mk("div", "rg", e.a == null ? "≤ " + e.b : e.b == null ? e.a + "+" : e.a + "-" + e.b)); r.appendChild(mk("div", "tx big", e.t)); box.appendChild(r);
     });
-    box.appendChild(mk("p", "hint", "Gewürfelt wird mit 3W6, die Summe entscheidet."));
+    box.appendChild(mk("p", "hint", "Gewürfelt wird mit 3W6. Der Modifikator wird auf die Summe gerechnet und lässt sich auch nach dem Wurf noch ändern."));
   }
   function viewWu(box) {
     const last = tres.wu, a = last && tsub.a < 0 ? last.a : tsub.a, ch = mk("div", "achips");
