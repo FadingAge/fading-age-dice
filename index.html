@@ -206,6 +206,9 @@
   #p-char .ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 6px; }
   #p-char .ed-grid label { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13px; }
   #p-char .ed-row { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+  #p-char #shrow { flex-wrap: wrap; }
+  #p-char #shrow .mbtn { white-space: nowrap; }
+  #p-char #shrow .hint { flex: 1 1 100%; }
   #p-char .ed-in { flex: 1; min-width: 0; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; font-size: 13px; font-family: inherit; }
   #p-char .ed-x, #p-char .mbtn { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; cursor: pointer; font-family: inherit; font-size: 12px; }
   #p-char .ed-x { padding: 0; width: 30px; font-size: 16px; line-height: 1; flex: none; }
@@ -681,7 +684,7 @@
     const c = { w: 0, m: 0, f: 0, z: 0, u: 0, e: 0 }, p = [];
     st.dice.forEach((d) => { c[d.k]++; });
     if (c.u) return "Entfesseln " + c.u + "KW6";
-    if (c.z) p.push(c.z + "KW6");
+    if (c.z) p.push(c.z + "KW6" + (st.fz ? ` (Furcht +${st.fz})` : ""));
     if (c.w) p.push((st.attr ? st.attr + " " : "") + c.w + "W6");
     if (c.m) p.push(c.m + "MW6");
     if (c.f) p.push(c.f + "FurchtW6");
@@ -1344,9 +1347,9 @@
     return { id: String(r.id).slice(0, 64), pid: String(r.pid || "").slice(0, 64),
       name: String(r.name || "?").slice(0, 40), hidden: !!r.hidden, mask: !!r.mask, pushed: false, done: false,
       mode: r.mode === "combat" ? "combat" : r.mode === "magic" ? "magic" : r.mode === "init" ? "init" : "normal", probe: !!r.probe, attr: ATTRS.includes(r.attr) ? r.attr : "",
-      skill: clamp(r.skill, 0, 3), exh: clamp(r.exh, 0, 2), wmod: clamp(r.wmod, -3, 3), total: Math.max(0, parseInt(r.total) || 0),
+      skill: clamp(r.skill, 0, 3), exh: clamp(r.exh, 0, 2), fz: clamp(r.fz, 0, 2), wmod: clamp(r.wmod, -3, 3), total: Math.max(0, parseInt(r.total) || 0),
       raw: Number.isFinite(parseInt(r.raw)) ? parseInt(r.raw) : Math.max(0, parseInt(r.total) || 0),
-      dice: (Array.isArray(r.dice) ? r.dice : []).slice(0, 20)
+      dice: (Array.isArray(r.dice) ? r.dice : []).slice(0, 24)
         .map((d) => ({ k: d.k === "m" ? "m" : d.k === "f" ? "f" : d.k === "z" ? "z" : d.k === "u" ? "u" : d.k === "i" ? "i" : "w", ...cleanDie(d) })) };
   }
   function cleanPush(p) {
@@ -1474,12 +1477,13 @@
         document.querySelectorAll("#zmode button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === unl));
         document.querySelectorAll("#zprobe button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.zp));
         $("zprobe").hidden = unl;
-        $("z-lbl").textContent = unl ? "Entfesseln:" : "Korruption:"; $("z-n").textContent = S[zKey()];
+        $("z-lbl").textContent = unl ? "Entfesseln:" : "Korruption:"; $("z-n").textContent = S[zKey()] + (!unl && S.fear > 0 ? ` +${S.fear}` : "");
         const at = pickedAttr(), eff = at ? effW() : 0, sk = picked.f ? S.skill : 0;
-        $("zinfo").textContent = unl ? "Macht zählt auf 4-6, Rückschlag auf 1-3. Beides wird getrennt gezählt."
+        const fz = !unl && S.fear > 0 ? ` Furcht: ${S.fear} zusätzliche KW6.` : "";
+        $("zinfo").textContent = (unl ? "Macht zählt auf 4-6, Rückschlag auf 1-3. Beides wird getrennt gezählt."
           : !S.zp ? "Es zählt nur die Korruption: 1-2 bringt Korruption, 5-6 nimmt sie wieder weg."
           : (eff > 0 || sk > 0) ? "Probe: zusätzlich " + [eff > 0 ? `${at} ${eff}W6 (5-6 = 1 Erfolg)` : "", sk > 0 ? `Fertigkeit ${ROMAN[sk]} als feste Erfolge` : ""].filter(Boolean).join(" und ")
-          : "Probe: unten Attribut und Fertigkeit antippen, beide zählen mit (Merkmale nicht)";
+          : "Probe: unten Attribut und Fertigkeit antippen, beide zählen mit (Merkmale nicht)") + fz;
       }
     }
     // Erschöpfung nimmt W6 weg (durchgestrichene Felder), Furcht sperrt die MW6 und ersetzt sie durch FurchtW6
@@ -1923,7 +1927,8 @@
 
     async function rollMagic() {
       const cl = magicClass(), unl = cl === "a" && S.zu, probe = !unl && S.zp, dice = [];
-      for (let i = 0; i < (unl ? S.un : S.zn); i++) dice.push({ k: unl ? "u" : "z", v: randInt(6), ...look("z") });
+      const fz = unl ? 0 : S.fear; // Furcht: beim regulären Zaubern 1 bzw. 2 zusätzliche KW6 (nicht beim Entfesseln)
+      for (let i = 0; i < (unl ? S.un : S.zn + fz); i++) dice.push({ k: unl ? "u" : "z", v: randInt(6), ...look("z") });
       let skill = 0, exh = 0, wmod = 0, attr = "";
       if (probe) { // Probe: zusätzlich Attribut als W6 (5-6 = 1 Erfolg) und Fertigkeit als feste Erfolge, kein Merkmal
         attr = pickedAttr(); // nur ein angetipptes Attribut zählt
@@ -1934,7 +1939,7 @@
       if (probe && picked.f) skill = S.skill; // nur eine angetippte Fertigkeit zählt
       const raw = probe ? dice.reduce((a, d) => a + hit(d), 0) + skill : 0;
       const msg = { type: "roll", id: crypto.randomUUID(), pid: myId, name: await OBR.player.getName(),
-        dice, skill, exh, wmod, total: raw, raw, hidden: hiddenRoll || maskRoll, mode: "magic", probe, attr };
+        dice, skill, exh, wmod, total: raw, raw, hidden: hiddenRoll || maskRoll, mode: "magic", probe, attr, fz };
       const L = magicLines(msg);
       msg.summary = `${label(msg)}: ${[L.txt, ...L.subs].join(", ")}`;
       const mk2 = maskRoll; await send(msg, msg.hidden); if (mk2) await sendMasked(msg).catch(() => {});
