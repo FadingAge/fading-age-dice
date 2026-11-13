@@ -95,36 +95,61 @@
   .themes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
   .themes button { height: 34px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer; padding: 0; }
   .themes button.on { border-color: var(--txt); box-shadow: 0 0 0 2px var(--acc); }
-  /* Infos zum Nachschlagen */
-  .isearch { display: flex; gap: 6px; margin-bottom: 8px; }
-  .isearch input { flex: 1; min-width: 0; }
-  .isearch .mini { height: 30px; }
-  .icat { margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
-  .icat > summary, .ient > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-  .icat > summary::-webkit-details-marker, .ient > summary::-webkit-details-marker { display: none; }
-  .icat > summary { padding: 9px 10px; font-weight: 800; font-size: 13px; letter-spacing: .3px; color: var(--acc); }
-  .icat > summary .ct { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--mut2); }
-  .chev { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(-45deg); transition: transform .15s; }
-  details[open] > summary > .chev { transform: rotate(45deg); }
-  .icat[open] > summary { border-bottom: 1px solid var(--line); }
-  .ient { border-top: 1px solid var(--line); }
-  .ient:first-of-type { border-top: 0; }
-  .ient > summary { padding: 8px 10px 8px 14px; font-size: 13px; font-weight: 700; }
-  .ient[open] > summary { color: var(--acc); }
-  .ib { padding: 0 12px 10px 14px; font-size: 13px; line-height: 1.45; color: var(--txt); }
-  .ib p { margin: 0 0 6px; }
-  .ib ul { margin: 0 0 6px; padding-left: 18px; }
-  .ib li { margin-bottom: 2px; }
-  .ib b { color: var(--acc); }
+  /* Tabellen zum Nachschlagen */
+  .subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .subtabs button { flex: 1 1 auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--mut); font-size: 12px; font-weight: 700; cursor: pointer; }
+  .subtabs button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
+  .stufen { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; }
+  .stufen button, .achips button { padding: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--mut); font-size: 13px; font-weight: 800; cursor: pointer; }
+  .stufen button.on, .achips button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
+  .achips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .achips button { flex: 1 1 auto; padding: 6px 8px; font-size: 12px; }
+  .rbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-height: 44px; }
+  .rbar .go { flex: none; width: auto; padding: 9px 14px; font-size: 14px; }
+  .rd { display: flex; gap: 5px; align-items: center; flex: 1; min-width: 0; flex-wrap: wrap; }
+  .d6 { width: 34px; height: 34px; line-height: 34px; text-align: center; border-radius: 8px; background: var(--bg); border: 2px solid var(--line2); color: var(--acc); font-size: 19px; font-weight: 800; }
+  .d6.spin { opacity: .65; }
+  .d6 small { display: block; line-height: 1; font-size: 8px; margin-top: -9px; color: var(--mut2); font-weight: 400; }
+  .rsum { font-size: 14px; font-weight: 800; color: var(--txt); }
+  .tnote { margin: 0 0 8px; padding: 7px 10px; font-size: 12px; line-height: 1.4; border-radius: 8px; border: 1px solid #b83a3a; background: rgba(184,58,58,.18); }
+  .trow { display: flex; gap: 9px; margin-bottom: 4px; padding: 7px 9px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); font-size: 13px; line-height: 1.4; transition: box-shadow .2s; }
+  .trow.hit { border-color: var(--acc); box-shadow: 0 0 10px var(--acc), inset 0 0 0 1px var(--acc); background: var(--alt); }
+  .trow .no { flex: none; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background: var(--bg); border: 1px solid var(--line2); font-weight: 800; font-size: 12px; color: var(--acc); }
+  .trow.hit .no { background: var(--acc); color: var(--onacc); border-color: var(--acc); }
+  .trow .tx { flex: 1; min-width: 0; }
+  .trow .tx b { color: var(--acc); }
+  .trow .tt { font-weight: 800; color: var(--acc); }
+  .tag { margin-left: 5px; }
+  .tag.perm { border-color: var(--warn, #e6c04a); color: var(--warn, #e6c04a); }
+  .tag.die { border-color: var(--bad, #ff7a7a); color: var(--bad, #ff7a7a); }
+  .tag.ok { border-color: var(--good, #8fd694); color: var(--good, #8fd694); }
+  .rg { flex: none; min-width: 42px; text-align: center; font-weight: 800; color: var(--mut); }
+  .trow.neg { border-left: 4px solid var(--bad, #ff7a7a); } .trow.rej { border-left: 4px solid var(--warn, #e6c04a); }
+  .trow.neu { border-left: 4px solid var(--mut2); } .trow.int { border-left: 4px solid #6cb4d9; } .trow.pos { border-left: 4px solid var(--good, #8fd694); }
+  .trow .big { font-size: 14px; font-weight: 700; }
+  .efx { color: var(--mut); font-size: 12px; margin: 2px 0 0; } .efx i { font-style: normal; font-weight: 800; color: var(--acc); margin-right: 4px; }
+  .egrp { margin-bottom: 6px; padding: 6px 6px 2px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); }
+  .egrp.hit { border-color: var(--acc); box-shadow: 0 0 10px var(--acc); }
+  .egrp .trow { background: var(--bg); }
+  .egrp .gh { margin: 0 0 5px 3px; display: flex; align-items: center; gap: 8px; }
+  .wres { margin: 0 0 8px; padding: 8px 10px; border-radius: 10px; background: var(--alt); border: 1px solid var(--acc); font-size: 15px; font-weight: 800; text-align: center; }
+  .wres span { color: var(--mut); font-weight: 400; font-size: 12px; display: block; }
+  .ib { padding: 0 0 4px; font-size: 13px; line-height: 1.45; }
+  .ib p { margin: 0 0 6px; } .ib ul { margin: 0 0 6px; padding-left: 18px; } .ib b { color: var(--acc); }
   .ib .ea { display: flex; gap: 6px; margin-top: 8px; }
   .ib textarea { width: 100%; box-sizing: border-box; min-height: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: inherit; font: inherit; font-size: 13px; resize: vertical; }
   .ib input[type=text] { margin-bottom: 6px; }
-  .inone { padding: 8px 10px; font-size: 12px; color: var(--mut2); }
+  .ncard { margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .ncard > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 9px 10px; font-weight: 800; font-size: 13px; color: var(--acc); }
+  .ncard > summary::-webkit-details-marker { display: none; }
+  .ncard .ib { padding: 0 12px 10px; }
+  .chev { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(-45deg); transition: transform .15s; }
+  details[open] > summary > .chev { transform: rotate(45deg); }
   .warn2 { background: #b5605e; border-color: #b5605e; color: #fff; }
 </style>
 </head>
 <body>
-  <nav class="tabs" id="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="info">Infos</button><button data-v="set">Optionen</button></nav>
+  <nav class="tabs" id="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="tab">Tabellen</button><button data-v="set">Optionen</button></nav>
   <p class="hint" id="notgm" hidden>Dieses Werkzeug ist für die SL. Als Spieler brauchst Du es nicht, die Ansage kommt über die Würfel-Extension.</p>
   <div id="app">
    <section id="v-init">
@@ -160,10 +185,9 @@
     <div class="sec">Merkmale</div><div id="e-m"></div>
     <div class="btns"><button class="go" id="e-done">Fertig</button><button class="ghost" id="e-del">Löschen</button></div>
    </section>
-   <section id="v-info" hidden>
-    <div class="isearch"><input type="text" id="i-q" placeholder="Suchen" aria-label="Suchen"><button class="mini" id="i-close" title="Alles zuklappen">Zuklappen</button></div>
-    <div id="ilist"></div>
-    <p class="hint">Die Texte kannst Du in der Datei infos.js ändern. Eigene Notizen bleiben nur in Deinem Browser.</p>
+   <section id="v-tab" hidden>
+    <nav class="subtabs" id="subtabs"><button data-t="rs">Rückschläge</button><button data-t="re">Reaktion</button><button data-t="wu">Wunden</button><button data-t="ef">Effekte</button><button data-t="no">Notizen</button></nav>
+    <div id="tbody"></div>
    </section>
    <section id="v-set" hidden>
     <div class="sec">Design</div>
@@ -179,7 +203,7 @@
 
   const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
   import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
-  import { INFOS } from "./infos.js";
+  import { RUECK, REAKTION, WUNDEN, EFFEKTE } from "./tabellen.js";
   const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
   let set = readSet();
   // Design: wie der Würfel-Tracker (gleiche Herkunft, gleicher Speicher) oder eigene Wahl
@@ -286,7 +310,7 @@
 
   // ---------- Ansichten ----------
   let view = readJ(KEYS.tab, {}).v || "init", editing = null, delArmed = false;
-  const VIEWS = ["init", "chars", "edit", "info", "set"];
+  const VIEWS = ["init", "chars", "edit", "tab", "set"];
   function showView(v) {
     view = VIEWS.includes(v) ? v : "init";
     VIEWS.forEach((x) => { $("v-" + x).hidden = x !== view; });
@@ -294,7 +318,7 @@
     if (view !== "edit") writeJ(KEYS.tab, { v: view });
     if (view === "chars") { renderChars(); OBR.broadcast.sendMessage(CH, { type: "charreq" }, { destination: "ALL" }).catch(() => {}); }
     if (view === "set") renderSet();
-    if (view === "info") renderInfo();
+    if (view === "tab") renderTab();
   }
   document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.v)));
 
@@ -376,24 +400,94 @@
     writeJ(KEYS.local, readLocal().filter((e) => e.id !== editing.id)); editing = null; showView("chars");
   });
 
-  // ---------- Infos zum Nachschlagen ----------
-  let openSet = new Set(Array.isArray(readJ(KEYS.open, [])) ? readJ(KEYS.open, []).slice(0, 200).map(String) : []), noteEdit = null;
-  const saveOpen = () => writeJ(KEYS.open, [...openSet].slice(0, 200));
-  const inline = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
-  function body(text) {
+  // ---------- Tabellen zum Nachschlagen ----------
+  const ROM = ["I", "II", "III", "IV", "V", "VI"];
+  let tsub = readJ(KEYS.sub, {}), tres = { rs: {}, re: null, wu: null, ef: null }, noteEdit = null, rolling = false;
+  if (!["rs", "re", "wu", "ef", "no"].includes(tsub.t)) tsub.t = "rs";
+  tsub.s = clamp(tsub.s, 0, 5); if (!tsub.a && tsub.a !== 0) tsub.a = -1; tsub.a = Math.min(5, Math.max(-1, parseInt(tsub.a)));
+  const saveSub = () => writeJ(KEYS.sub, tsub);
+  const rich = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
+  const die = (v, cls, lbl) => { const d = mk("div", "d6 " + (cls || ""), String(v)); if (lbl) d.appendChild(mk("small", "", lbl)); return d; };
+  // Würfelleiste: Knopf plus Würfel. Beim Klick wackeln die Würfel kurz, dann steht das Ergebnis
+  function rollBar(label, n, labels, last, onDone) {
+    const bar = mk("div", "rbar"), btn = mk("button", "go", label), rd = mk("div", "rd");
+    const show = (vals, cls) => { rd.textContent = ""; vals.forEach((v, i) => rd.appendChild(die(v, cls, labels && labels[i]))); };
+    if (last) { show(last.dice); if (last.sum !== undefined) rd.appendChild(mk("span", "rsum", "= " + last.sum)); }
+    btn.addEventListener("click", () => {
+      if (rolling) return; rolling = true; btn.disabled = true;
+      const final = Array.from({ length: n }, () => randInt(6)); let k = 0;
+      const iv = setInterval(() => {
+        show(final.map(() => randInt(6)), "spin");
+        if (++k >= 8) { clearInterval(iv); rolling = false; onDone(final); }
+      }, 60);
+    });
+    bar.append(btn, rd); return bar;
+  }
+  const hitScroll = () => { const h = $("tbody").querySelector(".hit"); if (h && h.scrollIntoView) h.scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+  function viewRs(box) {
+    const s = tsub.s, key = ROM[s], D = RUECK[key], last = tres.rs[s];
+    const g = mk("div", "stufen");
+    ROM.forEach((r, i) => { const b = mk("button", i === s ? "on" : "", r); b.title = "Rückschlag " + r; b.addEventListener("click", () => { tsub.s = i; saveSub(); renderTab(); }); g.appendChild(b); });
+    box.appendChild(g);
+    if (D.note) box.appendChild(mk("div", "tnote", D.note));
+    box.appendChild(rollBar("Rückschlag " + key + " würfeln", 1, null, last && { dice: [last] }, (f) => { tres.rs[s] = f[0]; renderTab(); setTimeout(hitScroll, 50); }));
+    D.items.forEach((e) => {
+      const r = mk("div", "trow" + (last === e.n ? " hit" : "")), tx = mk("div", "tx"), t = mk("div");
+      t.appendChild(mk("span", "tt", e.t));
+      if (e.tag) t.appendChild(mk("span", "tag perm", e.tag));
+      if (key === "VI") t.appendChild(mk("span", "tag " + ([1, 5, 6].includes(e.n) ? "die" : "ok"), [1, 5, 6].includes(e.n) ? "Tod" : "Rettung möglich"));
+      tx.appendChild(t); tx.appendChild(mk("div", "", e.b)); r.appendChild(mk("div", "no", String(e.n))); r.appendChild(tx); box.appendChild(r);
+    });
+  }
+  function viewRe(box) {
+    const last = tres.re;
+    box.appendChild(rollBar("3W6 würfeln", 3, null, last && { dice: last.dice, sum: last.sum }, (f) => { tres.re = { dice: f, sum: f[0] + f[1] + f[2] }; renderTab(); setTimeout(hitScroll, 50); }));
+    REAKTION.forEach((e) => {
+      const r = mk("div", "trow " + e.c + (last && last.sum >= e.a && last.sum <= e.b ? " hit" : ""));
+      r.appendChild(mk("div", "rg", e.a + "-" + e.b)); r.appendChild(mk("div", "tx big", e.t)); box.appendChild(r);
+    });
+    box.appendChild(mk("p", "hint", "Gewürfelt wird mit 3W6, die Summe entscheidet."));
+  }
+  function viewWu(box) {
+    const last = tres.wu, a = last && tsub.a < 0 ? last.a : tsub.a, ch = mk("div", "achips");
+    [["Zufall", -1], ...WUNDEN.map((w, i) => [w.a, i])].forEach(([n, i]) => {
+      const b = mk("button", i === tsub.a ? "on" : "", n); b.addEventListener("click", () => { tsub.a = i; saveSub(); tres.wu = null; renderTab(); }); ch.appendChild(b);
+    });
+    box.appendChild(ch);
+    const rnd = tsub.a < 0;
+    box.appendChild(rollBar(rnd ? "Wundfolge würfeln" : "Folge würfeln", rnd ? 2 : 1, rnd ? ["Attr.", "Folge"] : null, last && { dice: last.dice },
+      (f) => { tres.wu = rnd ? { a: f[0] - 1, f: f[1], dice: f } : { a: tsub.a, f: f[0], dice: f }; renderTab(); setTimeout(hitScroll, 50); }));
+    if (last) { const w = mk("div", "wres", ""); w.appendChild(document.createTextNode(WUNDEN[last.a].f[last.f - 1])); w.appendChild(mk("span", "", WUNDEN[last.a].a)); box.appendChild(w); }
+    if (a < 0) { box.appendChild(mk("p", "hint", "Zufall: Der erste Würfel bestimmt das Attribut (1 Kraft, 2 Geschick, 3 Präsenz, 4 Intellekt, 5 Sinne, 6 Wille), der zweite die Folge. Oder wähle oben ein Attribut.")); return; }
+    WUNDEN[a].f.forEach((n, i) => {
+      const r = mk("div", "trow" + (last && last.a === a && last.f === i + 1 ? " hit" : ""));
+      r.appendChild(mk("div", "no", String(i + 1))); r.appendChild(mk("div", "tx big", n)); box.appendChild(r);
+    });
+  }
+  function viewEf(box) {
+    const last = tres.ef;
+    box.appendChild(rollBar("Effektwürfel (EW6)", 1, null, last && { dice: [last] }, (f) => { tres.ef = f[0]; renderTab(); setTimeout(hitScroll, 50); }));
+    const line = (lab, txt) => { const p = mk("div", "efx"); p.appendChild(mk("i", "", lab)); rich(p, txt); return p; };
+    EFFEKTE.allg.forEach((e) => {
+      const r = mk("div", "trow" + (last === e.n ? " hit" : "")), tx = mk("div", "tx");
+      tx.appendChild(mk("div", "tt", e.t)); tx.appendChild(line("I", e.i)); tx.appendChild(line("II", e.ii));
+      r.appendChild(mk("div", "no", String(e.n))); r.appendChild(tx); box.appendChild(r);
+    });
+    EFFEKTE.waffe.forEach((g) => {
+      const d = mk("div", "egrp" + (last === g.n ? " hit" : "")), gh = mk("div", "gh"); gh.appendChild(mk("div", "no", String(g.n))); gh.appendChild(mk("span", "tt", "Je nach Waffe")); d.appendChild(gh);
+      g.w.forEach((w) => { const r = mk("div", "trow"), tx = mk("div", "tx"); tx.appendChild(mk("div", "tt", w.w)); tx.appendChild(line("I", w.i)); tx.appendChild(line("II", w.ii)); r.appendChild(tx); d.appendChild(r); });
+      box.appendChild(d);
+    });
+  }
+  // Eigene Notizen (nur in diesem Browser)
+  const ctxt60 = (x) => String(x == null ? "" : x).replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 60);
+  function noteBody(text) {
     const box = mk("div", "ib"); let ul = null;
     String(text).split("\n").forEach((line) => {
-      if (/^- /.test(line)) { if (!ul) { ul = mk("ul"); box.appendChild(ul); } const li = mk("li"); inline(li, line.slice(2)); ul.appendChild(li); }
-      else if (line.trim()) { ul = null; const p = mk("p"); inline(p, line); box.appendChild(p); }
+      if (/^- /.test(line)) { if (!ul) { ul = mk("ul"); box.appendChild(ul); } const li = mk("li"); rich(li, line.slice(2)); ul.appendChild(li); }
+      else if (line.trim()) { ul = null; const p = mk("p"); rich(p, line); box.appendChild(p); }
     });
     return box;
-  }
-  function detailsEl(cls, key, titleText, extra, force) {
-    const d = mk("details", cls), s = mk("summary"); s.appendChild(mk("span", "chev")); s.appendChild(mk("span", "", titleText));
-    if (extra) s.appendChild(mk("span", "ct", extra));
-    d.appendChild(s); d.open = force || openSet.has(key);
-    d.addEventListener("toggle", () => { if (force) return; if (d.open) openSet.add(key); else openSet.delete(key); saveOpen(); });
-    return d;
   }
   function noteEditor(n, isNew) {
     const box = mk("div", "ib"), ti = mk("input"), ta = mk("textarea");
@@ -403,48 +497,37 @@
     ok.addEventListener("click", () => {
       const list = readNotes(), t = ctxt60(ti.value) || "Ohne Titel", i = list.findIndex((e) => e.id === n.id), v = { id: n.id, t, b: ta.value };
       if (i >= 0) list[i] = v; else list.push(v);
-      writeJ(KEYS.notes, list); openSet.add("n:" + n.id); saveOpen(); noteEdit = null; renderInfo();
+      writeJ(KEYS.notes, list); noteEdit = null; renderTab();
     });
     del.addEventListener("click", () => {
       if (!isNew && !armed) { armed = true; del.textContent = "Wirklich löschen?"; del.classList.add("warn2"); return; }
       if (!isNew) writeJ(KEYS.notes, readNotes().filter((e) => e.id !== n.id));
-      noteEdit = null; renderInfo();
+      noteEdit = null; renderTab();
     });
     row.append(ok, del); box.append(ti, ta, row); return box;
   }
-  const ctxt60 = (x) => String(x == null ? "" : x).replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 60);
-  function renderInfo() {
-    const box = $("ilist"); if (!box) return;
-    const q = $("i-q").value.trim().toLowerCase(), find = !!q;
-    const hit = (...a) => !find || a.some((s) => String(s).toLowerCase().includes(q));
-    box.textContent = ""; let any = false;
-    INFOS.forEach((c, ci) => {
-      const catHit = hit(c.t), items = c.items.map((e, ei) => ({ e, ei })).filter(({ e }) => catHit || hit(e.t, e.b));
-      if (!items.length) return; any = true;
-      const d = detailsEl("icat", "c:" + ci, c.t, String(items.length), find);
-      items.forEach(({ e, ei }) => { const x = detailsEl("ient", "e:" + ci + ":" + ei, e.t, "", find); x.appendChild(body(e.b)); d.appendChild(x); });
+  function viewNo(box) {
+    const notes = readNotes();
+    notes.forEach((n) => {
+      const d = mk("details", "ncard"), s = mk("summary"); s.appendChild(mk("span", "chev")); s.appendChild(mk("span", "", n.t)); d.appendChild(s);
+      const editing = noteEdit && noteEdit.id === n.id; d.open = editing || openNotes.has(n.id);
+      d.addEventListener("toggle", () => { if (d.open) openNotes.add(n.id); else openNotes.delete(n.id); });
+      if (editing) d.appendChild(noteEditor(n, false));
+      else { const b = noteBody(n.b), ea = mk("div", "ea"), eb = mk("button", "mini", "Bearbeiten"); eb.addEventListener("click", () => { noteEdit = { id: n.id }; renderTab(); }); ea.appendChild(eb); b.appendChild(ea); d.appendChild(b); }
       box.appendChild(d);
     });
-    // Eigene Notizen
-    const notes = readNotes().filter((n) => hit(n.t, n.b) || (noteEdit && noteEdit.id === n.id));
-    const nd = detailsEl("icat", "c:notes", "Eigene Notizen", String(notes.length), find || !!noteEdit);
-    if (!find || notes.length || noteEdit) {
-      notes.forEach((n) => {
-        if (noteEdit && noteEdit.id === n.id) { const x = detailsEl("ient", "n:" + n.id, n.t, "", true); x.appendChild(noteEditor(n, false)); nd.appendChild(x); return; }
-        const x = detailsEl("ient", "n:" + n.id, n.t, "", find); const b = body(n.b); const ea = mk("div", "ea"); const eb = mk("button", "mini", "Bearbeiten");
-        eb.addEventListener("click", () => { noteEdit = { id: n.id }; openSet.add("c:notes"); renderInfo(); }); ea.appendChild(eb); b.appendChild(ea); x.appendChild(b); nd.appendChild(x);
-      });
-      if (noteEdit && noteEdit.isNew) { const x = detailsEl("ient", "n:new", "Neue Notiz", "", true); x.appendChild(noteEditor({ id: noteEdit.id, t: "", b: "" }, true)); nd.appendChild(x); }
-      else if (!find) {
-        const add = mk("div", "ib"), ab = mk("button", "ghost wide", "+ Notiz hinzufügen"); ab.disabled = notes.length >= MAX.notes;
-        ab.addEventListener("click", () => { noteEdit = { id: crypto.randomUUID(), isNew: true }; openSet.add("c:notes"); renderInfo(); }); add.appendChild(ab); nd.appendChild(add);
-      }
-      box.appendChild(nd); any = true;
-    }
-    if (!any) box.appendChild(mk("div", "inone", "Nichts gefunden."));
+    if (noteEdit && noteEdit.isNew) { const d = mk("details", "ncard"), s = mk("summary"); s.appendChild(mk("span", "chev")); s.appendChild(mk("span", "", "Neue Notiz")); d.appendChild(s); d.open = true; d.appendChild(noteEditor({ id: noteEdit.id, t: "", b: "" }, true)); box.appendChild(d); }
+    else { const ab = mk("button", "ghost wide", "+ Notiz hinzufügen"); ab.disabled = notes.length >= MAX.notes; ab.addEventListener("click", () => { noteEdit = { id: crypto.randomUUID(), isNew: true }; renderTab(); }); box.appendChild(ab); }
+    if (!notes.length && !noteEdit) box.appendChild(mk("p", "hint", "Hier kannst Du eigene Notizen für Deine Runde ablegen. Sie bleiben nur in Deinem Browser."));
   }
-  $("i-q").addEventListener("input", renderInfo);
-  $("i-close").addEventListener("click", () => { $("i-q").value = ""; openSet.clear(); saveOpen(); renderInfo(); });
+  const openNotes = new Set();
+  function renderTab() {
+    const box = $("tbody"); if (!box) return;
+    document.querySelectorAll("#subtabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === tsub.t));
+    box.textContent = "";
+    ({ rs: viewRs, re: viewRe, wu: viewWu, ef: viewEf, no: viewNo }[tsub.t] || viewRs)(box);
+  }
+  document.querySelectorAll("#subtabs button").forEach((b) => b.addEventListener("click", () => { tsub.t = b.dataset.t; saveSub(); noteEdit = null; renderTab(); }));
 
   // ---------- Optionen ----------
   const SHOW_LABELS = [["a", "Attribute"], ["x", "Makel"], ["f", "Fertigkeiten"], ["m", "Merkmale"], ["k", "Kampffertigkeiten"], ["t", "Art (Weltlicher, Verdammter, Abtrünniger)"]];
