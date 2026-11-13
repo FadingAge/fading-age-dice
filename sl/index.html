@@ -212,7 +212,7 @@
     <div class="btns"><button class="go" id="e-done">Fertig</button><button class="ghost" id="e-del">Löschen</button></div>
    </section>
    <section id="v-tab" hidden>
-    <nav class="subtabs" id="subtabs"><button data-t="rs">Rückschläge</button><button data-t="re">Reaktion</button><button data-t="wu">Wunden</button><button data-t="ef">Effekte</button><button data-t="ev">Ereignis</button><button data-t="hi">Hinterhalt</button><button data-t="no">Notizen</button></nav>
+    <nav class="subtabs" id="subtabs"><button data-t="re">Reaktion</button><button data-t="ev">Ereignis</button><button data-t="ef">Effekte</button><button data-t="wu">Wunden</button><button data-t="rs">Rückschläge</button><button data-t="hi">Hinterhalt</button><button data-t="no">Notizen</button></nav>
     <div id="tbody"></div>
    </section>
    <section id="v-set" hidden>
@@ -525,7 +525,7 @@
   // ---------- Tabellen zum Nachschlagen ----------
   const ROM = ["I", "II", "III", "IV", "V", "VI"], MODS_OK = REAKTION_MOD;
   let tsub = readJ(KEYS.sub, {}), tres = { rs: {}, re: null, wu: null, ef: null, ev: null, hi: -1 }, noteEdit = null, rolling = false;
-  if (!["rs", "re", "wu", "ef", "ev", "hi", "no"].includes(tsub.t)) tsub.t = "rs";
+  if (!["rs", "re", "wu", "ef", "ev", "hi", "no"].includes(tsub.t)) tsub.t = "re";
   tsub.s = clamp(tsub.s, 0, 5); tsub.m = MODS_OK.includes(tsub.m) ? tsub.m : 0; if (!tsub.a && tsub.a !== 0) tsub.a = -1; tsub.a = Math.min(5, Math.max(-1, parseInt(tsub.a)));
   const saveSub = () => writeJ(KEYS.sub, tsub);
   const rich = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
