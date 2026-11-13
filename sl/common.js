@@ -25,11 +25,11 @@ export const readJ = (k, fb) => { try { const o = JSON.parse(localStorage.getIte
 export const writeJ = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignorieren */ } };
 
 // Was die SL im Charakter sieht (Standard: Attribute, Makel, Fertigkeiten, Merkmale)
-export const DEFAULT_SET = { theme: "auto", show: { a: true, x: true, f: true, m: true, k: false, t: false } };
+export const DEFAULT_SET = { theme: "auto", cast: "mask", show: { a: true, x: true, f: true, m: true, k: false, t: false } };
 export function readSet() {
   const s = readJ(KEYS.set, {}), d = DEFAULT_SET;
   const show = {}; Object.keys(d.show).forEach((k) => { show[k] = s.show && typeof s.show[k] === "boolean" ? s.show[k] : d.show[k]; });
-  return { theme: typeof s.theme === "string" ? s.theme.slice(0, 20) : d.theme, show };
+  return { theme: typeof s.theme === "string" ? s.theme.slice(0, 20) : d.theme, cast: s.cast === "off" ? "off" : "mask", show };
 }
 export const readPChars = () => {
   const o = readJ(KEYS.pchars, {}), out = {};

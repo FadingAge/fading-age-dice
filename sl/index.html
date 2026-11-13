@@ -53,6 +53,15 @@
   .hint { margin: 10px 0 0; font-size: 12px; line-height: 1.35; color: var(--mut); }
   .warn { margin: 10px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.35; border-radius: 8px; border: 1px solid #b83a3a; background: rgba(184,58,58,.18); }
 
+  .topbar { display: flex; gap: 6px; align-items: stretch; margin: 0 0 12px; }
+  .topbar .tabs { flex: 1; margin: 0; }
+  .ibtn { flex: none; width: 38px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--mut); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ibtn svg { width: 20px; height: 20px; }
+  .ibtn.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
+  #cast .hid-line { display: none; } #cast.off .hid-line { display: block; } #cast.off .q-mark { display: none; } #cast.off { color: var(--mut2); }
+  #cast:not(.off) { color: var(--acc); border-color: var(--line2); }
+  .rbar .clr { flex: none; width: 28px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--mut); cursor: pointer; font-size: 15px; }
+  .rbar .clr:hover { border-color: var(--line2); color: var(--txt); }
   .tabs { display: flex; margin: 0 0 12px; }
   .tabs button { flex: 1; padding: 8px 2px; border: 1px solid var(--line); background: var(--panel); color: var(--mut); font-size: 12px; font-weight: 700; cursor: pointer; margin-left: -1px; }
   .tabs button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
@@ -166,7 +175,7 @@
 </style>
 </head>
 <body>
-  <nav class="tabs" id="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="tab">Tabellen</button><button data-v="set">Optionen</button></nav>
+  <div class="topbar" id="tabs"><button class="ibtn" id="cast" aria-label="Würfe für Spieler anzeigen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="hid-line" d="M4 4l16 16"/><text class="q-mark" x="12" y="15.3" text-anchor="middle" font-size="9.5" font-weight="700" stroke="none" fill="currentColor">?</text></svg></button><nav class="tabs"><button data-v="init">Initiative</button><button data-v="chars">Charaktere</button><button data-v="tab">Tabellen</button></nav><button class="ibtn" data-v="set" id="tab-set" title="Optionen" aria-label="Optionen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button></div>
   <p class="hint" id="notgm" hidden>Dieses Werkzeug ist für die SL. Als Spieler brauchst Du es nicht, die Ansage kommt über die Würfel-Extension.</p>
   <div id="app">
    <section id="v-init">
@@ -207,6 +216,9 @@
     <div id="tbody"></div>
    </section>
    <section id="v-set" hidden>
+    <div class="sec">Meine Würfe für die Spieler</div>
+    <div class="seg" id="s-cast"><button data-s="mask">Verdeckt mit ?</button><button data-s="off">Nichts anzeigen</button></div>
+    <p class="hint">Verdeckt: Die Spieler sehen meine Würfel in meinem Würfelstil, aber ohne Augen. Das Auge oben links schaltet dasselbe um.</p>
     <div class="sec">Design</div>
     <div class="seg" id="s-theme-auto"><button data-s="auto">Wie Würfel-Tracker</button><button data-s="own">Eigenes wählen</button></div>
     <div class="themes" id="s-themes"></div>
@@ -220,6 +232,7 @@
 
   const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
   import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
+  import { readLooks } from "./looks.js";
   import { RUECK, REAKTION, REAKTION_MOD, WUNDEN, EFFEKTE, EREIGNIS, HINTERHALT } from "./tabellen.js";
   const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
   let set = readSet();
@@ -297,6 +310,23 @@
   }
 
   const send = (m) => OBR.broadcast.sendMessage(INIT, m, { destination: "ALL" });
+  // Meine Würfe für die Spieler: gleiche Nachricht wie ein verdeckter Wurf der Würfel-Extension (Würfel in meinem Stil, Fragezeichen statt Augen)
+  async function cast(kinds) {
+    try {
+      if (role !== "GM" || set.cast !== "mask" || !kinds.length) return;
+      const L = readLooks();
+      await OBR.broadcast.sendMessage("de.fadingage.dice", { type: "roll", id: crypto.randomUUID(), pid: await OBR.player.getId(), name: txt(await OBR.player.getName()), mode: "normal", mask: true, hidden: false, skill: 0, exh: 0, total: 0, raw: 0, attr: "",
+        dice: kinds.slice(0, 24).map((k) => ({ k, v: 4, hex: L[k].hex, pip: L[k].pip, pat: L[k].pat, q: true })), summary: "würfelt verdeckt" }, { destination: "REMOTE" });
+    } catch { /* ignorieren */ }
+  }
+  function paintCast() {
+    const off = set.cast === "off", b = $("cast"); if (!b) return;
+    b.classList.toggle("off", off);
+    b.title = off ? "Meine Würfe sind für die Spieler unsichtbar. Antippen: verdeckt mit Fragezeichen anzeigen" : "Meine Würfe zeigen die Spieler verdeckt mit Fragezeichen. Antippen: nichts anzeigen";
+    b.setAttribute("aria-pressed", off ? "false" : "true");
+  }
+  $("cast").addEventListener("click", () => { set.cast = set.cast === "off" ? "mask" : "off"; writeJ(KEYS.set, set); paintCast(); if (view === "set") renderSet(); });
+  paintCast();
   $("start").addEventListener("click", async () => {
     round = { id: crypto.randomUUID(), enemy: 0, over: {}, shown: false, t: Date.now() };
     got = { id: round.id, p: {} }; writeRound(); render();
@@ -307,7 +337,7 @@
   const setEnemy = (v) => { if (!round) return; round.enemy = clamp(v, 1, 6); round.shown = false; writeRound(); render(); };
   $("em").addEventListener("click", () => setEnemy(round && round.enemy ? round.enemy - 1 : 1));
   $("ep").addEventListener("click", () => setEnemy(round && round.enemy ? round.enemy + 1 : 1));
-  $("eroll").addEventListener("click", () => setEnemy(randInt(6)));
+  $("eroll").addEventListener("click", () => { cast(["w"]); setEnemy(randInt(6)); });
   $("show").addEventListener("click", async () => {
     if (!round || !round.enemy) return;
     const en = round.enemy, rs = rows().filter((r) => r.v), pack = (a) => a.map((r) => ({ n: r.n, v: r.v })).sort((a, b) => b.v - a.v);
@@ -331,13 +361,13 @@
   function showView(v) {
     view = VIEWS.includes(v) ? v : "init";
     VIEWS.forEach((x) => { $("v-" + x).hidden = x !== view; });
-    document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.v === (view === "edit" ? "chars" : view)));
+    document.querySelectorAll("#tabs button[data-v]").forEach((b) => b.classList.toggle("on", b.dataset.v === (view === "edit" ? "chars" : view)));
     if (view !== "edit") writeJ(KEYS.tab, { v: view });
     if (view === "chars") { renderChars(); OBR.broadcast.sendMessage(CH, { type: "charreq" }, { destination: "ALL" }).catch(() => {}); }
     if (view === "set") renderSet();
     if (view === "tab") renderTab();
   }
-  document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.v)));
+  document.querySelectorAll("#tabs button[data-v]").forEach((b) => b.addEventListener("click", () => showView(b.dataset.v)));
 
   // ---------- Charakterübersicht ----------
   function chips(items, cls) { const w = mk("div", "chips"); items.forEach((e) => { const c = mk("span", "chp " + (cls || ""), e.n); if (e.b) c.appendChild(mk("b", "", e.b)); w.appendChild(c); }); return w; }
@@ -376,7 +406,7 @@
   // Pool aus W6 (5-6 = 1 Erfolg), MW6 (5-6 = 2 Erfolge) und Fertigkeit (feste Erfolge). Die Erfolge werden gegen das Attribut jedes gewählten Charakters gehalten:
   // Erfolge unter dem Attribut = nicht betroffen, Attribut oder Attribut +1 = betroffen, Attribut +2 oder mehr = kritisch betroffen.
   const PKEY = "fa-sl-probe";
-  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, 0, 6), nw: clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
+  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, 0, 6), nw: o.nw === undefined ? 3 : clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
   const saveProbe = () => writeJ(PKEY, probe);
   let psel = null, proll = null; // psel: Auswahl (null = alle aktiven Spieler), proll: letzter Wurf
   function targets() {
@@ -411,13 +441,16 @@
     go.disabled = !probe.nw && !probe.nm && !probe.sk;
     go.addEventListener("click", () => {
       if (rolling) return; rolling = true; go.disabled = true;
+      cast([...Array(probe.nw).fill("w"), ...Array(probe.nm).fill("m")]);
       const final = [...Array(probe.nw)].map(() => ({ k: "w", v: randInt(6) })).concat([...Array(probe.nm)].map(() => ({ k: "m", v: randInt(6) }))); let k = 0;
       const iv = setInterval(() => {
         draw(final.map((d) => ({ k: d.k, v: randInt(6) })), true);
         if (++k >= 8) { clearInterval(iv); rolling = false; proll = { dice: final, sk: probe.sk }; renderChars(); }
       }, 60);
     });
-    bar.append(go, rd); b.appendChild(bar);
+    bar.append(go, rd);
+    if (proll) { const x = mk("button", "clr", "×"); x.title = "Letzten Wurf löschen"; x.setAttribute("aria-label", "Letzten Wurf löschen"); x.addEventListener("click", () => { proll = null; renderChars(); }); bar.appendChild(x); }
+    b.appendChild(bar);
     if (proll) b.appendChild(mk("div", "psum", hitsOf(proll) + (hitsOf(proll) === 1 ? " Erfolg" : " Erfolge")));
     // Ziele
     const ts = targets(), def = new Set(ts.filter((t) => !t.own).map((t) => t.key)), sel = psel || def;
@@ -498,19 +531,22 @@
   const rich = (el, s) => String(s).split(/\*\*(.+?)\*\*/).forEach((part, i) => { if (part) el.appendChild(i % 2 ? mk("b", "", part) : document.createTextNode(part)); });
   const die = (v, cls, lbl) => { const d = mk("div", "d6 " + (cls || ""), String(v)); if (lbl) d.appendChild(mk("small", "", lbl)); return d; };
   // Würfelleiste: Knopf plus Würfel. Beim Klick wackeln die Würfel kurz, dann steht das Ergebnis
-  function rollBar(label, n, labels, last, onDone) {
+  function rollBar(label, n, labels, last, onDone, kind, onClear) {
     const bar = mk("div", "rbar"), btn = mk("button", "go", label), rd = mk("div", "rd");
     const show = (vals, cls) => { rd.textContent = ""; vals.forEach((v, i) => rd.appendChild(die(v, cls, labels && labels[i]))); };
     if (last) { show(last.dice); if (last.sum !== undefined) rd.appendChild(mk("span", "rsum", "= " + last.sum)); }
     btn.addEventListener("click", () => {
       if (rolling) return; rolling = true; btn.disabled = true;
+      if (kind) cast(Array(n).fill(kind));
       const final = Array.from({ length: n }, () => randInt(6)); let k = 0;
       const iv = setInterval(() => {
         show(final.map(() => randInt(6)), "spin");
         if (++k >= 8) { clearInterval(iv); rolling = false; onDone(final); }
       }, 60);
     });
-    bar.append(btn, rd); return bar;
+    bar.append(btn, rd);
+    if (last && onClear) { const x = mk("button", "clr", "×"); x.title = "Letzten Wurf löschen"; x.setAttribute("aria-label", "Letzten Wurf löschen"); x.addEventListener("click", () => { onClear(); renderTab(); }); bar.appendChild(x); }
+    return bar;
   }
   const hitScroll = () => { const h = $("tbody").querySelector(".hit"); if (h && h.scrollIntoView) h.scrollIntoView({ block: "nearest", behavior: "smooth" }); };
   function viewRs(box) {
@@ -519,7 +555,7 @@
     ROM.forEach((r, i) => { const b = mk("button", i === s ? "on" : "", r); b.title = "Rückschlag " + r; b.addEventListener("click", () => { tsub.s = i; saveSub(); renderTab(); }); g.appendChild(b); });
     box.appendChild(g);
     if (D.note) box.appendChild(mk("div", "tnote", D.note));
-    box.appendChild(rollBar("Rückschlag " + key + " würfeln", 1, null, last && { dice: [last] }, (f) => { tres.rs[s] = f[0]; renderTab(); setTimeout(hitScroll, 50); }));
+    box.appendChild(rollBar("Rückschlag " + key + " würfeln", 1, null, last && { dice: [last] }, (f) => { tres.rs[s] = f[0]; renderTab(); setTimeout(hitScroll, 50); }, "z", () => { delete tres.rs[s]; }));
     D.items.forEach((e) => {
       const r = mk("div", "trow" + (last === e.n ? " hit" : "")), tx = mk("div", "tx"), t = mk("div");
       t.appendChild(mk("span", "tt", e.t));
@@ -535,7 +571,7 @@
     const g = mk("div", "stufen m5");
     MODS.forEach((m) => { const b = mk("button", m === mod ? "on" : "", sg(m)); b.addEventListener("click", () => { tsub.m = m; saveSub(); renderTab(); }); g.appendChild(b); });
     box.appendChild(g);
-    const bar = rollBar("3W6 würfeln", 3, null, last && { dice: last.dice, sum: mod ? `${last.sum} ${sg(mod)} = ${tot}` : last.sum }, (f) => { tres.re = { dice: f, sum: f[0] + f[1] + f[2] }; renderTab(); setTimeout(hitScroll, 50); });
+    const bar = rollBar("3W6 würfeln", 3, null, last && { dice: last.dice, sum: mod ? `${last.sum} ${sg(mod)} = ${tot}` : last.sum }, (f) => { tres.re = { dice: f, sum: f[0] + f[1] + f[2] }; renderTab(); setTimeout(hitScroll, 50); }, "w", () => { tres.re = null; });
     box.appendChild(bar);
     REAKTION.forEach((e) => {
       const r = mk("div", "trow " + e.c + (last && (e.a == null || tot >= e.a) && (e.b == null || tot <= e.b) ? " hit" : ""));
@@ -545,7 +581,7 @@
   }
   function viewEv(box) {
     const last = tres.ev;
-    box.appendChild(rollBar("Ergebnis würfeln (1W6)", 1, null, last && { dice: [last] }, (f) => { tres.ev = f[0]; renderTab(); setTimeout(hitScroll, 50); }));
+    box.appendChild(rollBar("Ergebnis würfeln (1W6)", 1, null, last && { dice: [last] }, (f) => { tres.ev = f[0]; renderTab(); setTimeout(hitScroll, 50); }, "w", () => { tres.ev = null; }));
     EREIGNIS.forEach((t, i) => {
       const r = mk("div", "trow" + (last === i + 1 ? " hit" : ""));
       r.appendChild(mk("div", "no", String(i + 1))); r.appendChild(mk("div", "tx big", t)); box.appendChild(r);
@@ -569,7 +605,7 @@
     box.appendChild(ch);
     const rnd = tsub.a < 0;
     box.appendChild(rollBar(rnd ? "Wundfolge würfeln" : "Folge würfeln", rnd ? 2 : 1, rnd ? ["Attr.", "Folge"] : null, last && { dice: last.dice },
-      (f) => { tres.wu = rnd ? { a: f[0] - 1, f: f[1], dice: f } : { a: tsub.a, f: f[0], dice: f }; renderTab(); setTimeout(hitScroll, 50); }));
+      (f) => { tres.wu = rnd ? { a: f[0] - 1, f: f[1], dice: f } : { a: tsub.a, f: f[0], dice: f }; renderTab(); setTimeout(hitScroll, 50); }, "w", () => { tres.wu = null; }));
     if (last) { const w = mk("div", "wres", ""); w.appendChild(document.createTextNode(WUNDEN[last.a].f[last.f - 1])); w.appendChild(mk("span", "", WUNDEN[last.a].a)); box.appendChild(w); }
     if (a < 0) { box.appendChild(mk("p", "hint", "Zufall: Der erste Würfel bestimmt das Attribut (1 Kraft, 2 Geschick, 3 Präsenz, 4 Intellekt, 5 Sinne, 6 Wille), der zweite die Folge. Oder wähle oben ein Attribut.")); return; }
     WUNDEN[a].f.forEach((n, i) => {
@@ -579,7 +615,7 @@
   }
   function viewEf(box) {
     const last = tres.ef;
-    box.appendChild(rollBar("Effektwürfel (EW6)", 1, null, last && { dice: [last] }, (f) => { tres.ef = f[0]; renderTab(); setTimeout(hitScroll, 50); }));
+    box.appendChild(rollBar("Effektwürfel (EW6)", 1, null, last && { dice: [last] }, (f) => { tres.ef = f[0]; renderTab(); setTimeout(hitScroll, 50); }, "f", () => { tres.ef = null; }));
     const line = (lab, txt) => { const p = mk("div", "efx"); p.appendChild(mk("i", "", lab)); rich(p, txt); return p; };
     EFFEKTE.allg.forEach((e) => {
       const r = mk("div", "trow" + (last === e.n ? " hit" : "")), tx = mk("div", "tx");
@@ -646,6 +682,7 @@
   const SHOW_LABELS = [["a", "Attribute"], ["x", "Makel"], ["f", "Fertigkeiten"], ["m", "Merkmale"], ["k", "Kampffertigkeiten"], ["t", "Art (Weltlicher, Verdammter, Abtrünniger)"]];
   const saveSet = () => writeJ(KEYS.set, set);
   function renderSet() {
+    document.querySelectorAll("#s-cast button").forEach((b) => b.classList.toggle("on", b.dataset.s === set.cast));
     const own = set.theme !== "auto" && !!TH[set.theme];
     document.querySelectorAll("#s-theme-auto button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "own") === own));
     const box = $("s-themes"); box.hidden = !own; box.textContent = "";
@@ -662,6 +699,7 @@
       row.appendChild(seg); sh.appendChild(row);
     });
   }
+  document.querySelectorAll("#s-cast button").forEach((b) => b.addEventListener("click", () => { set.cast = b.dataset.s === "off" ? "off" : "mask"; writeJ(KEYS.set, set); paintCast(); renderSet(); }));
   document.querySelectorAll("#s-theme-auto button").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.s === "auto") set.theme = "auto"; else if (set.theme === "auto") { try { set.theme = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme || "daemmerung"; } catch { set.theme = "daemmerung"; } }
     saveSet(); applyTheme(); renderSet();
