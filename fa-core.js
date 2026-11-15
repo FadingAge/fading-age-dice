@@ -11,7 +11,7 @@ export const ART = { w: "Weltlicher", v: "Verdammter", a: "Abtrünniger" };
 export const NATUREN = { hunger: "Hunger", eid: "Eid", vernunft: "Vernunft" };
 export const WF_ATTRS = 6; // Glück kann keine Wundfolge bekommen
 export const WF_MAX = 2; // je Attribut höchstens 2 eingetragene Wundfolgen
-export const MAX = { chars: 12, f: 24, m: 12, x: 12, bf: 6, zz: 12, nar: 6, cnn: 6, log: 80, q: 24, ev: 20, notes: 4000 };
+export const MAX = { chars: 12, f: 24, m: 12, x: 12, bf: 6, zz: 12, nar: 6, cnn: 6, log: 80, q: 24, ev: 20, w: 4, notes: 4000 };
 export const TR_MAX = { fear: 6, exh: 6, wounds: 7, corr: 24, brand: 4 };
 
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
@@ -22,6 +22,67 @@ const arr = (x, max) => (Array.isArray(x) ? x.slice(0, max) : []);
 
 // Furcht und Erschöpfung zählen 0 bis 6: ab 3 ist Stufe 1, ab 5 ist Stufe 2
 export const level = (p) => (p >= 5 ? 2 : p >= 3 ? 1 : 0);
+
+
+// ---------- Ausrüstung: Waffen, Rüstung, Schild, Munition ----------
+export const DMG = ["Wucht", "Klinge", "Geschoss"];
+export const AT_SHORT = ["KRA", "GES", "PRÄ", "INT", "WIL", "SIN", "GLÜ"]; // Schreibweise wie in der Waffentabelle
+export const BASIS_RES = 3; // Grundresistenz ohne Rüstung
+// Tabellen aus der Charaktererstellung (Schritt V und VI). Waffe: Name, Hände, Attribute, Schadensart, Reichweite, Eigenschaften
+export const WAFFEN = [
+  ["Unbewaffnet", 1, "KRA,GES", "Wucht", "0", "Schwach II"],
+  ["Dolch", 1, "GES", "Klinge", "0 (2)", "Verbergbar, Werfbar"],
+  ["Parierdolch", 1, "GES", "Klinge", "0", "Verbergbar, Parieren +2W6"],
+  ["Schwert", 1, "KRA,GES", "Klinge", "0", "Parieren +1W6"],
+  ["Axt", 1, "KRA", "Klinge", "0", "Robust"],
+  ["Streitkolben", 1, "KRA", "Wucht", "0", "Robust"],
+  ["Speer", 1, "KRA,GES", "Klinge", "1 (2)", "Werfbar"],
+  ["Wurfaxt, Handaxt", 1, "KRA", "Klinge", "0 (2)", "Werfbar"],
+  ["Zweihänder", 2, "KRA,GES", "Klinge", "0", "+1AW6, Parieren +1W6"],
+  ["Zweihandaxt", 2, "KRA", "Klinge", "0", "+1AW6, Robust"],
+  ["Großer Kriegshammer", 2, "KRA", "Wucht", "0", "+1AW6, Robust, Sperrig"],
+  ["Langspeer", 2, "KRA,GES", "Klinge", "1", "+1AW6, Sperrig"],
+  ["Hellebarde", 2, "KRA", "Klinge,Wucht", "1", "+1AW6, Vielseitig, Sperrig"],
+  ["Kampfstab", 2, "KRA,GES", "Wucht", "1", "Parieren +2W6"],
+  ["Schleuder", 1, "GES", "Wucht", "3", "Nachladen I, Schwach I, Verbergbar"],
+  ["Kurzbogen", 2, "GES", "Geschoss", "3", "Nachladen I"],
+  ["Langbogen", 2, "KRA,GES", "Geschoss", "5", "Nachladen I, +1AW6, Sperrig"],
+  ["Armbrust", 2, "GES,SIN", "Geschoss", "4", "Nachladen 2, +1AW6"],
+  ["Pistole", 1, "GES,GLÜ", "Geschoss", "3", "Nachladen 3, Laut, Nahschuss, +2AW6"],
+  ["Muskete", 2, "SIN,GLÜ", "Geschoss", "5", "Nachladen 4, Laut, +2AW6"],
+];
+// Rüstung: Name, Wucht, Klinge, Geschoss, Haltbarkeit (0 = keine), Eigenschaften
+export const RUESTUNGEN = [
+  ["Alltagskleidung", 2, 3, 2, 0, ""], ["Schwere Kleidung", 3, 3, 2, 2, "Verbergbar"], ["Gepolsterte Kleidung", 4, 3, 3, 2, "Verbergbar"],
+  ["Gambeson", 4, 4, 3, 3, ""], ["Lederharnisch", 3, 5, 3, 3, ""], ["Verstärkte leichte Rüstung", 4, 5, 4, 3, ""],
+  ["Kettenhemd", 3, 6, 4, 4, "Verbergbar, Geräuschvoll"], ["Schuppenpanzer", 5, 6, 5, 4, "Schwerfällig I, Geräuschvoll"],
+  ["Kettenrüstung", 4, 7, 5, 4, "Schwerfällig I, Geräuschvoll"], ["Brigantine", 5, 6, 7, 4, "Schwerfällig I"],
+  ["Plattenharnisch", 6, 8, 7, 4, "Schwerfällig II, Geräuschvoll"],
+];
+// Schild: Name, Verteidigung (W6), Resistenz, Haltbarkeit, Eigenschaften
+export const SCHILDE = [["Buckler", 2, 1, 2, "Verbergbar"], ["Schild", 4, 2, 3, ""], ["Turmschild", 6, 3, 4, "Sperrig"]];
+
+const idxs = (x, max, n) => [...new Set(arr(x, n).map((v) => parseInt(v)).filter((v) => v >= 0 && v <= max))];
+export function cleanWeapon(e) {
+  e = obj(e); const hm = clamp(e.hm, 0, 4);
+  return { n: txt(e.n, 40), h: e.h === 2 ? 2 : 1, art: idxs(e.art, 2, 3), at: idxs(e.at, 6, 3), rw: txt(e.rw, 8), e: txt(e.e, 80), hm, hz: clamp(e.hz, 0, hm), eq: !!e.eq };
+}
+export function cleanArmor(e) {
+  e = obj(e); const hm = clamp(e.hm, 0, 8), r = arr(e.r, 3);
+  return { n: txt(e.n, 40), r: [0, 1, 2].map((i) => clamp(r[i], 0, 12)), hm, hz: clamp(e.hz, 0, hm), e: txt(e.e, 80) };
+}
+export function cleanShield(e) {
+  e = obj(e); const hm = clamp(e.hm, 0, 4);
+  return { n: txt(e.n, 40), v: clamp(e.v, 0, 12), r: clamp(e.r, 0, 6), hm, hz: clamp(e.hz, 0, hm), act: !!e.act, e: txt(e.e, 60) };
+}
+const names = (s) => s.split(",").map((x) => x.trim());
+export function weaponPreset(i) {
+  const w = WAFFEN[i]; if (!w) return null;
+  const hm = w[0] === "Unbewaffnet" ? 0 : /Robust/.test(w[5]) ? 4 : 3; // Jede Waffe beginnt mit Haltbarkeit 3, robuste mit 4, unbewaffnet ohne
+  return cleanWeapon({ n: w[0], h: w[1], at: names(w[2]).map((s) => AT_SHORT.indexOf(s)), art: names(w[3]).map((s) => DMG.indexOf(s)), rw: w[4], e: w[5], hm, hz: hm });
+}
+export function armorPreset(i) { const r = RUESTUNGEN[i]; return r ? cleanArmor({ n: r[0], r: [r[1], r[2], r[3]], hm: r[4], hz: r[4], e: r[5] }) : null; }
+export function shieldPreset(i) { const s = SCHILDE[i]; return s ? cleanShield({ n: s[0], v: s[1], r: s[2], hm: s[3], hz: s[3], e: s[4] }) : null; }
 
 // ---------- Charakter ----------
 export function cleanChar(c) {
@@ -48,6 +109,7 @@ export function cleanChar(c) {
     tr: { fear: clamp(tr.fear, 0, TR_MAX.fear), exh: clamp(tr.exh, 0, TR_MAX.exh), corr: clamp(tr.corr, 0, TR_MAX.corr),
       brand: clamp(tr.brand || 1, 1, TR_MAX.brand), wounds: clamp(tr.wounds, 0, TR_MAX.wounds),
       lvl: clamp(tr.lvl || 1, 1, 20), xp: clamp(tr.xp, 0, 9999), kxp: clamp(tr.kxp, 0, 9999) },
+    w: arr(c.w, MAX.w).map(cleanWeapon), ar: cleanArmor(c.ar), sh: cleanShield(c.sh), mun: { n: txt(obj(c.mun).n, 30), u: clamp(obj(c.mun).u, 0, 10) }, rb: clamp(c.rb, 0, 6),
     dead: txt(c.dead, 80),
     notes: String(c.notes == null ? "" : c.notes).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f<>]/g, "").slice(0, MAX.notes),
   };
@@ -57,6 +119,21 @@ export const newChar = (name = "") => cleanChar({ n: name, a: [3, 3, 3, 3, 3, 3,
 // Wirksamer Attributswert: Grundwert minus Wundfolgen (Glück bleibt)
 export const effAttr = (c, i) => Math.max(0, c.a[i] - (i < WF_ATTRS ? c.wf[i] : 0));
 export const wfTotal = (c) => c.wf.reduce((s, v) => s + v, 0);
+
+// Wirksame Resistenz gegen Wucht, Klinge, Geschoss: Rüstungswert ersetzt die Grundresistenz 3, solange noch Haltbarkeit übrig ist (oder die Rüstung keine hat).
+// Dazu kommen die Resistenz eines gehaltenen, heilen Schilds und der persönliche Bonus.
+export function resist(c) {
+  const ar = c.ar, arOn = ar.r.some((v) => v > 0) && (ar.hm === 0 || ar.hz > 0);
+  const sh = c.sh, shOn = sh.act && sh.r > 0 && (sh.hm === 0 || sh.hz > 0);
+  return [0, 1, 2].map((i) => (arOn ? ar.r[i] : BASIS_RES) + (shOn ? sh.r : 0) + c.rb);
+}
+// Schadensschwellen je Schadensart (Wucht, Klinge, Geschoss), vier Stück: R, dann jeweils + Attribut + Charakterstufe. Mit den Grundwerten der Attribute, wie das Charakterblatt.
+export function schwellen(c) {
+  const R = resist(c), a = c.a, L = c.tr.lvl, mk = (r, x, y, z) => { const s2 = r + x + L, s3 = s2 + y + L; return [r, s2, s3, s3 + z + L]; };
+  return [mk(R[0], a[0], a[4], a[1]), mk(R[1], a[1], a[5], a[2]), mk(R[2], a[5], a[6], a[0])];
+}
+// Belegte Hände: gezogene Waffen und gehaltener Schild
+export const handsUsed = (c) => c.w.reduce((s, w) => s + (w.eq ? w.h : 0), 0) + (c.sh.act ? 1 : 0);
 // Korruptionsgrenze: Abtrünnige Intellekt + Charakterstufe (höchstens 12), Verdammte 6 (darüber Fluchausbruch), Weltliche keine
 export const korrLimit = (c) => (c.t === "a" ? Math.min(12, c.a[3] + c.tr.lvl) : c.t === "v" ? 6 : 0);
 
@@ -65,6 +142,7 @@ export function alerts(c) {
   if (c.dead) out.push({ k: "dead", t: "Gestorben: " + c.dead });
   if (c.t === "v" && c.tr.corr > 6) out.push({ k: "ausbruch", t: "Korruption über 6: Fluchausbruch" });
   if (c.t === "a" && c.tr.corr > korrLimit(c)) out.push({ k: "grenze", t: `Korruptionsgrenze (${korrLimit(c)}) überschritten` });
+  if (handsUsed(c) > 2) out.push({ k: "hands", t: `Mehr als zwei Hände belegt (${handsUsed(c)}): Waffe oder Schild weglegen` });
   return out;
 }
 
@@ -72,7 +150,9 @@ export function alerts(c) {
 export function viewChar(c) {
   return { id: c.id, n: c.n, t: c.t, a: ATTRS.map((_, i) => effAttr(c, i)), a0: c.a.slice(), wf: [...c.wf, 0], k: c.k.slice(),
     f: c.f.map((e) => ({ n: e.n, r: e.r })), m: c.m.map((e) => ({ n: e.n, v: e.v })), x: c.x.slice(), dead: c.dead,
-    fear: level(c.tr.fear), exh: level(c.tr.exh) };
+    fear: level(c.tr.fear), exh: level(c.tr.exh),
+    gear: { w: c.w.filter((w) => w.eq).map((w) => ({ n: w.n, h: w.h, art: w.art.map((i) => DMG[i]), at: w.at.slice(), rw: w.rw, e: w.e, hz: w.hz, hm: w.hm })),
+      sh: c.sh.act ? { n: c.sh.n, v: c.sh.v, r: c.sh.r, hz: c.sh.hz, hm: c.sh.hm } : null } };
 }
 // Kurzfassung für die SL: altes Format plus Wundfolgen und Tracker
 export function slView(c) {

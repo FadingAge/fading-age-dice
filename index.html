@@ -195,6 +195,20 @@
   .cchip:disabled { opacity: .35; cursor: default; }
   html[data-fs="1"] .cchip.row, html[data-fs="1"] .ccols .cchip.row { font-size: 16px; min-height: 40px; } html[data-fs="1"] .cchip.row b { font-size: 17px; }
   html[data-fs="2"] .cchip.row, html[data-fs="2"] .ccols .cchip.row { font-size: 18px; min-height: 44px; } html[data-fs="2"] .cchip.row b { font-size: 20px; }
+  .cchip.atk { box-shadow: 0 0 0 2px var(--acc); }
+  .cchip.nof:not(.on) { opacity: .5; }
+  .cweap { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+  .cw { padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .cw .t1 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .cw .t1 b { font-size: 15px; color: var(--txt); overflow-wrap: anywhere; }
+  .cw .t1 span { font-size: 12px; color: var(--mut); }
+  .cw .t2 { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 4px; font-size: 12px; color: var(--mut); }
+  .cw .ab { padding: 1px 7px; border-radius: 6px; background: var(--acc); color: var(--onacc); font-size: 12px; font-weight: 800; }
+  .cw .t3 { margin-top: 3px; font-size: 12px; color: var(--txt); opacity: .85; overflow-wrap: anywhere; }
+  .cw .hp { display: inline-flex; gap: 3px; margin-left: auto; }
+  .cw .hp i { width: 10px; height: 10px; border: 2px solid var(--acc2); border-radius: 3px; box-sizing: border-box; }
+  .cw .hp i.on { background: var(--acc2); }
+  .cw.sh { border-style: dashed; }
   .cchip.fix { cursor: default; border-style: dashed; color: var(--mut); }
   .cchip.hurt { border-color: #d9524a; background: rgba(217,82,74,.16); position: relative; }
   .cchip.hurt b { color: #ff8f86; }
@@ -1712,6 +1726,27 @@ import * as FA from "./fa-core.js";
     if (!ch) { box.appendChild(mk("p", "cempty", "Noch kein Charakter. Lege ihn in der Charakter-Extension an oder hier in den Einstellungen unter \"Charakter\".")); return; }
     const grp = () => { const g = mk("div", "cgrp"); box.appendChild(g); return g; };
     const head = (g, label, slot) => { const h = mk("div", "ghead"); h.appendChild(mk("div", "clbl", label)); if (slot) h.appendChild(slot); g.appendChild(h); return h; };
+    // Kampfmodus: getragene Waffe und die Attribute, mit denen sich damit angreifen lässt (nur mit Charakter aus der Charakter-Extension)
+    let usable = null;
+    if (curMode() === "combat" && ch.gear) {
+      const bare = { n: "Unbewaffnet", art: ["Wucht"], at: [0, 1], rw: "0", e: "Schwach II", h: 1, hz: 0, hm: 0 }, ws = ch.gear.w.length ? ch.gear.w : [bare];
+      usable = new Set(); ws.forEach((w) => w.at.forEach((i) => usable.add(i)));
+      const gw = grp(); head(gw, ws.length > 1 ? "Waffen in der Hand" : "Waffe in der Hand").classList.add("c");
+      const lw = mk("div", "cweap"); gw.appendChild(lw);
+      ws.forEach((w) => {
+        const r = mk("div", "cw"), t1 = mk("div", "t1");
+        t1.appendChild(mk("b", "", w.n || "(ohne Name)")); t1.appendChild(mk("span", "", [w.art.join(" / "), w.rw ? "RW " + w.rw : "", w.h === 2 ? "zweihändig" : ""].filter(Boolean).join(" · ")));
+        r.appendChild(t1);
+        const t2 = mk("div", "t2"); t2.appendChild(mk("span", "", "Angriff mit"));
+        w.at.forEach((i) => t2.appendChild(mk("span", "ab", FA.AT_SHORT[i])));
+        if (w.hm) { const hp = mk("span", "hp"); hp.title = `Haltbarkeit ${w.hz} von ${w.hm}`; for (let k = 1; k <= w.hm; k++) hp.appendChild(mk("i", k <= w.hz ? "on" : "")); t2.appendChild(hp); }
+        r.appendChild(t2);
+        if (w.e) r.appendChild(mk("div", "t3", w.e));
+        lw.appendChild(r);
+      });
+      if (!ch.gear.w.length) lw.appendChild(mk("div", "t3", "Keine Waffe in der Hand. Im Charakterbogen unter Ausrüstung \"In der Hand\" wählen."));
+      if (ch.gear.sh) { const r = mk("div", "cw sh"), t1 = mk("div", "t1"); t1.appendChild(mk("b", "", ch.gear.sh.n || "Schild")); t1.appendChild(mk("span", "", [ch.gear.sh.v ? `Schildwert ${ch.gear.sh.v}W6` : "", ch.gear.sh.r ? `Resistenz +${ch.gear.sh.r}` : ""].filter(Boolean).join(" · "))); r.appendChild(t1); lw.appendChild(r); }
+    }
     // Attribute mit Erschöpfung
     const g1 = grp(); head(g1, "Attribute", statExh).classList.add("c", "s");
     const ga = mk("div", "cgrid"); g1.appendChild(ga);
@@ -1724,6 +1759,7 @@ import * as FA from "./fa-core.js";
     ATTRS.forEach((n, i) => {
       const wf = ch.wf ? ch.wf[i] : 0, c = cchip("a", i, n, ch.a[i], String(ch.a[i]), picked.a === i && S.nw === ch.a[i], !!wf && ch.a[i] < 1, true);
       if (wf) { c.classList.add("hurt"); c.appendChild(mk("em", "hb", `-${wf}`)); c.title = `${n}: ${ch.a[i]} (Grundwert ${ch.a0[i]}, ${wf} Wundfolge${wf > 1 ? "n" : ""})`; }
+      if (usable) c.classList.add(usable.has(i) ? "atk" : "nof");
       if (i === 3) ga.appendChild(mod); ga.appendChild(c);
     });
     // Merkmale (mit Furcht) links, Fertigkeiten rechts, jeweils als Liste
