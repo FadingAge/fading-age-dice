@@ -194,6 +194,12 @@
   .cchip.on small, .cchip.on b { color: var(--onacc); }
   .cchip:disabled { opacity: .35; cursor: default; }
   .cchip.fix { cursor: default; border-style: dashed; color: var(--mut); }
+  .cchip.hurt { border-color: #d9524a; background: rgba(217,82,74,.16); position: relative; }
+  .cchip.hurt b { color: #ff8f86; }
+  .cchip.hurt.on b { color: var(--onacc); }
+  .cchip .hb { position: absolute; top: 2px; right: 5px; font-style: normal; font-size: 10px; font-weight: 800; color: #ff8f86; }
+  .cchip.hurt.on .hb { color: var(--onacc); }
+  body.autosrc .sbtn, body.autosrc .dots button { cursor: default; }
   .cempty { font-size: 13px; opacity: .75; line-height: 1.35; margin: 0 2px 2px; }
   #p-save .ed-sec { margin-top: 14px; font-weight: 700; }
   #p-save .hint { margin-top: 10px; }
@@ -492,10 +498,15 @@
         <input type="range" id="vol" min="0" max="100" step="5" style="flex:1;min-width:0;accent-color:var(--acc)"></div>
     </div>
     <div id="p-char" hidden>
+      <div class="srow"><span class="name" title="Automatisch: Der Charakter kommt aus der Charakter-Extension, Furcht, Erschöpfung und Wundfolgen wirken von selbst. Manuell: Du gibst den Charakter hier ein, zum Beispiel wenn Du das PDF nutzt.">Quelle</span>
+        <div class="seg" id="csrc"><button data-s="auto">Automatisch</button><button data-s="manual">Manuell</button></div></div>
+      <p class="hint" id="csrc-msg" style="margin:2px 0 10px"></p>
+      <div id="ed-wrap">
       <div class="srow"><select id="ed-sel" style="flex:1;min-width:0" aria-label="Charakter wählen"></select>
         <button class="mbtn" id="ed-new">Neu</button><button class="mbtn" id="ed-del">Löschen</button></div>
       <div class="ed-row" id="shrow"><button class="mbtn" id="sh-btn">Mit SL teilen</button><span class="hint" id="sh-msg" style="margin:0">Die SL sieht Deinen gewählten Charakter automatisch. Mit dem Knopf schickst Du ihn nochmal.</span></div>
       <div id="ed-body"></div>
+      </div>
     </div>
     <div id="p-save" hidden>
       <p class="hint">Sichere deine Charaktere und Einstellungen, zum Beispiel für ein anderes Gerät. Sie liegen sonst nur in diesem Browser.</p>
@@ -517,6 +528,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js';document.head.appendChild(s)"></script>
 <script type="module">
+import * as FA from "./fa-core.js";
   import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
 
   const CHANNEL = "de.fadingage.dice";
@@ -531,27 +543,27 @@
   let picked = { a: -1, m: -1, f: "" }; // zuletzt angetippte Kärtchen des Charakters
   // Name des gewählten Attributs aus dem Charakter (nur wenn es noch zum Wurf passt), sonst leer
   function pickedAttr() {
-    const ch = S.chars[S.ci];
+    const ch = curCh();
     return charView() && ch && picked.a >= 0 && S.nw === ch.a[picked.a] ? ATTRS[picked.a] : "";
   }
-  function charView() { return S.charOpen && !!S.chars[S.ci]; } // Charakteransicht statt manueller Regler
+  function charView() { return S.charOpen && !!curCh(); } // Charakteransicht statt manueller Regler
   // Zusatz-W6 (-3 bis +3) gibt es nur in der Charakteransicht; wirksame normale W6 = Attribut + Zusatz - Erschöpfung
   const modW = () => (charView() ? S.wmod : 0);
   const effW = () => Math.max(0, S.nw + modW() - S.exh);
   // Gewählte Waffenfertigkeit: n Nahkampf, f Fernkampf, s Schusswaffen (Verteidigen ist keine Waffe)
   function weapon() {
-    const ch = S.chars[S.ci], m = /^k([123])$/.exec(picked.f);
+    const ch = curCh(), m = /^k([123])$/.exec(picked.f);
     return ch && m && ch.k[+m[1]] && S.skill === ch.k[+m[1]] ? "nfs"[+m[1] - 1] : "";
   }
   // Symbol im Würfelknopf: Waffe oder v für Verteidigen
   function skillIcon() {
-    const ch = S.chars[S.ci], m = /^k([0-3])$/.exec(picked.f);
+    const ch = curCh(), m = /^k([0-3])$/.exec(picked.f);
     return ch && m && ch.k[+m[1]] && S.skill === ch.k[+m[1]] ? "vnfs"[+m[1]] : "";
   }
   // In der Charakteransicht gibt es den zweiten Angriffsschritt nur mit gewählter Waffenfertigkeit, in der manuellen Ansicht immer
   function combatRoll() { return curMode() === "combat" && (!charView() || !!weapon()); }
   // Art des Charakters in der Charakteransicht: v Verdammter, a Abtrünniger, sonst leer (Weltlicher wirkt wie bisher)
-  function magicClass() { const ch = S.chars[S.ci]; return charView() && ch && (ch.t === "v" || ch.t === "a") ? ch.t : ""; }
+  function magicClass() { const ch = curCh(); return charView() && ch && (ch.t === "v" || ch.t === "a") ? ch.t : ""; }
   // Wirksamer Reiter: Zauber gibt es nur mit passendem Charakter in der Charakteransicht
   function initArmed() {
     try { const o = JSON.parse(localStorage.getItem(INIT_KEY) || "null"); return o && typeof o.id === "string" && Date.now() - o.t < 900000 ? o : null; } catch { return null; }
@@ -603,7 +615,7 @@
     kup_bl:  { name: "Kupfer-Blau",         kind: "frame",   frame: "#dc8d63", fill: "#2a74b8", hex: "#2a74b8", pip: "#e9a57c", mat: "metal" },
   };
   const freshDefaults = () => ({ cw: "#e0b035", pw: "#1a1408", cm: "#b83a3a", pm: "#f5efe0", cf: "#5b3a8c", pf: "#f5efe0", cz: "#1f7a86", pz: "#f5efe0", dz: "none", zn: 2, un: 3, zp: false, zu: false,
-    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
+    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, src: "auto", logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
   // Gespeicherte Daten (Browser oder Sicherung) werden immer streng geprüft und auf Standardwerte aufgesetzt
   function readSaved(s) {
     const S = freshDefaults();
@@ -635,6 +647,7 @@
     if (Array.isArray(s.chars)) S.chars = s.chars.slice(0, MAX_CHARS).map(cleanChar);
     S.ci = clamp(s.ci, 0, Math.max(0, S.chars.length - 1));
     if (s.charOpen === false) S.charOpen = false;
+    if (s.src === "manual") S.src = "manual";
     if (s.logh !== undefined) S.logh = clamp(s.logh, 90, 1200);
 
     return S;
@@ -654,6 +667,30 @@
       x: list(c.x, MAX_X).map(txt) };
   }
   const save = () => { try { localStorage.setItem("fa-dice3", JSON.stringify(S)); } catch {} };
+
+  // ---------- Charakterquelle: Automatisch (Charakter-Extension) oder Manuell (Eingabe hier, wie bisher) ----------
+  const ext = { chars: [], ci: 0, raw: null };
+  const autoOn = () => S.src !== "manual" && ext.chars.length > 0;
+  function readExt() {
+    const st = FA.readStore();
+    ext.chars = st.chars.map(FA.viewChar);
+    ext.ci = Math.max(0, st.chars.findIndex((c) => c.id === st.ci));
+    try { ext.raw = localStorage.getItem(FA.STORE); } catch { ext.raw = null; }
+  }
+  readExt();
+  const chars = () => (autoOn() ? ext.chars : S.chars);
+  const cidx = () => (autoOn() ? ext.ci : S.ci);
+  const curCh = () => chars()[cidx()];
+  // Furcht und Erschöpfung (Stufe 0-2) kommen im Automatisch-Modus aus dem Charakterbogen
+  function pullExt() { if (autoOn()) { const c = curCh(); S.exh = c.exh; S.fear = c.fear; } }
+  pullExt();
+  // Vorschlag an den Charakterbogen: der Spieler trägt ihn dort selbst ein oder lehnt ihn ab
+  function propose(kind, delta, why) {
+    try {
+      const c = autoOn() ? curCh() : null; if (!c || !delta) return;
+      FA.update((st) => FA.addProposal(st, { cid: c.id, kind, delta, label: why, src: "Würfel" }));
+    } catch { /* ignorieren */ }
+  }
 
   // ---------- Regeln ----------
   // Erfolge je Würfel: W6 +1 auf 5-6, MW6 +2 auf 5-6, FurchtW6 +2 auf 5-6 und -2 auf 1-2
@@ -1464,6 +1501,8 @@
     return P ? { hex: P.hex, pip: P.pip, pat: S[d] } : { hex: S[c], pip: S[p], pat: "none" };
   }
   function paint() {
+    pullExt();
+    document.body.classList.toggle("autosrc", autoOn());
     POOLS.forEach(([id, keyFn, type]) => {
       const el = $(id), key = keyFn();
       const lk = look(type); el.style.setProperty("--body", lk.hex); el.style.setProperty("--pip", lk.pip);
@@ -1516,10 +1555,11 @@
     $("tw").className = "bg-" + S.tray + (S.fire !== "off" && !S.lite ? " fire" : "") + (S.fire === "flicker" && !S.lite ? " flick" : "");
     document.documentElement.classList.toggle("lite", S.lite);
     document.querySelectorAll("#lte button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.lite));
-    const SEGVAL = { srf: S.surf, shd: S.shadow ? "1" : "0", trs: S.tray, fir: S.fire };
+    const SEGVAL = { csrc: S.src === "manual" ? "manual" : "auto", srf: S.surf, shd: S.shadow ? "1" : "0", trs: S.tray, fir: S.fire };
     for (const id in SEGVAL) document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset.s === SEGVAL[id]));
     document.querySelectorAll("#themes button").forEach((b) => b.classList.toggle("on", b.dataset.t === S.theme));
     $("btn-exh").dataset.l = S.exh; $("btn-fear").dataset.l = S.fear;
+    ["btn-exh", "btn-fear"].forEach((id) => { const b = $(id); if (b.dataset.t0 === undefined) b.dataset.t0 = b.title; b.title = autoOn() ? "Kommt aus dem Charakterbogen und lässt sich nur dort ändern (oder durch die SL)." : b.dataset.t0; });
     $("tab-normal").classList.toggle("active", curMode() === "normal" && !settingsOpen);
     $("tab-combat").classList.toggle("active", curMode() === "combat" && !settingsOpen);
     $("tab-magic").classList.toggle("active", curMode() === "magic" && !settingsOpen);
@@ -1589,6 +1629,22 @@
   bindSeg("fir", "fire", (v) => v);
   bindSeg("mnw", "mini", (v) => v);
   bindSeg("mres", "minires", (v) => v === "1");
+  bindSeg("csrc", "src", (v) => (v === "manual" ? "manual" : "auto"), () => { picked = { a: -1, m: -1, f: "" }; readExt(); if (!autoOn()) { S.exh = 0; S.fear = 0; } pullExt(); save(); paint(); renderEditor(); });
+  // Änderungen im Charakterbogen (anderes Fenster) sofort übernehmen
+  function syncExt() {
+    if (MINI) return;
+    let now = null; try { now = localStorage.getItem(FA.STORE); } catch { /* ignorieren */ }
+    if (now === ext.raw) return;
+    const prev = curCh() && curCh().id;
+    readExt();
+    const c = curCh();
+    if (autoOn() && (!c || c.id !== prev)) picked = { a: -1, m: -1, f: "" };
+    else if (autoOn() && picked.a >= 0) { S.nw = c.a[picked.a] > 0 ? c.a[picked.a] : 0; if (!S.nw) picked.a = -1; }
+    pullExt(); paint();
+  }
+  window.addEventListener("storage", (e) => { if (e.key === FA.STORE || e.key === null) syncExt(); });
+  window.addEventListener("focus", syncExt);
+  setInterval(syncExt, 1500);
   bindSeg("lte", "lite", (v) => v === "1", () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(W, H, false); meshes.forEach(setGlow); kick(); });
   Object.keys(THEMES).forEach((t) => {
     const b = document.createElement("button");
@@ -1614,7 +1670,7 @@
     b.appendChild(mk("span", "", name || "(ohne Name)")); b.appendChild(mk("b", "", valTxt)); b.title = `${name}: ${valTxt}`; return b;
   };
   function renderChar() {
-    const ch = S.chars[S.ci], view = S.charOpen && !!ch; // Charakteransicht ersetzt die manuellen Regler
+    const ch = curCh(), view = S.charOpen && !!ch; // Charakteransicht ersetzt die manuellen Regler
     $("main").classList.toggle("charview", view);
     $("charname").textContent = ch ? ch.n || "Charakter" : "Charakter";
     if (!ch) $("charcar").textContent = "anlegen";
@@ -1624,10 +1680,10 @@
     // Erschöpfung und Furcht wandern in der Charakteransicht zu Attributen und Merkmalen, sonst zurück zu den Reglern
     if (statExh.parentElement !== poolMid || statFear.parentElement !== poolMid) { poolMid.insertBefore(statExh, $("pool-m")); poolMid.appendChild(statFear); }
     const box = $("charcont"); box.textContent = "";
-    const sel = $("charsel"); sel.hidden = !S.charOpen || S.chars.length < 2;
-    if (!sel.hidden) { sel.textContent = ""; S.chars.forEach((c, i) => { const o = mk("option", "", c.n || `Charakter ${i + 1}`); o.value = i; sel.appendChild(o); }); sel.value = S.ci; }
+    const sel = $("charsel"); sel.hidden = !S.charOpen || chars().length < 2;
+    if (!sel.hidden) { sel.textContent = ""; chars().forEach((c, i) => { const o = mk("option", "", (c.dead ? "† " : "") + (c.n || `Charakter ${i + 1}`)); o.value = i; sel.appendChild(o); }); sel.value = cidx(); }
     if (!S.charOpen) return;
-    if (!ch) { box.appendChild(mk("p", "cempty", "Noch kein Charakter. Lege deinen in den Einstellungen unter \"Charakter\" an.")); return; }
+    if (!ch) { box.appendChild(mk("p", "cempty", "Noch kein Charakter. Lege ihn in der Charakter-Extension an oder hier in den Einstellungen unter \"Charakter\".")); return; }
     const grp = () => { const g = mk("div", "cgrp"); box.appendChild(g); return g; };
     const head = (g, label, slot) => { const h = mk("div", "ghead"); h.appendChild(mk("div", "clbl", label)); if (slot) h.appendChild(slot); g.appendChild(h); return h; };
     // Attribute mit Erschöpfung
@@ -1639,7 +1695,11 @@
     const mb = (txt, d, lbl) => { const b = mk("button", "", txt); b.type = "button"; b.dataset.d = d; b.setAttribute("aria-label", lbl); b.disabled = d < 0 ? S.wmod <= -3 : S.wmod >= 3; return b; };
     mrow.appendChild(mb("-", -1, "Ein W6 weniger")); mrow.appendChild(mk("b", "", (S.wmod > 0 ? "+" : "") + S.wmod)); mrow.appendChild(mb("+", 1, "Ein W6 mehr"));
     mod.appendChild(mrow);
-    ATTRS.forEach((n, i) => { const c = cchip("a", i, n, ch.a[i], String(ch.a[i]), picked.a === i && S.nw === ch.a[i], false, true); if (i === 3) ga.appendChild(mod); ga.appendChild(c); });
+    ATTRS.forEach((n, i) => {
+      const wf = ch.wf ? ch.wf[i] : 0, c = cchip("a", i, n, ch.a[i], String(ch.a[i]), picked.a === i && S.nw === ch.a[i], !!wf && ch.a[i] < 1, true);
+      if (wf) { c.classList.add("hurt"); c.appendChild(mk("em", "hb", `-${wf}`)); c.title = `${n}: ${ch.a[i]} (Grundwert ${ch.a0[i]}, ${wf} Wundfolge${wf > 1 ? "n" : ""})`; }
+      if (i === 3) ga.appendChild(mod); ga.appendChild(c);
+    });
     // Merkmale (mit Furcht) links, Fertigkeiten rechts, jeweils als Liste
     const cols = mk("div", "ccols"); box.appendChild(cols);
     const hl = mk("div", "ghead"); hl.appendChild(mk("div", "clbl", "Merkmale")); hl.appendChild(statFear);
@@ -1660,7 +1720,7 @@
   $("charhead").addEventListener("click", () => {
     if (switching) return;
     const flip = () => { S.charOpen = !S.charOpen; save(); paint(); };
-    if (!S.chars[S.ci]) return flip();
+    if (!curCh()) return flip();
     switching = true; $("main").classList.add("fadeout");
     setTimeout(() => { flip(); $("main").classList.remove("fadeout"); setTimeout(() => { switching = false; }, 260); }, 260);
   });
@@ -1675,12 +1735,17 @@
     S.nw = 0; S.nm = 0; S.skill = 0; S.wmod = 0; picked = { a: -1, m: -1, f: "" }; save();
     state = null; adj = 0; effectOn = false; showMark(null); showStatic([]); paint();
   });
-  $("charsel").addEventListener("change", () => { S.ci = clamp($("charsel").value, 0, S.chars.length - 1); picked = { a: -1, m: -1, f: "" }; save(); paint(); });
+  $("charsel").addEventListener("change", () => {
+    const i = clamp($("charsel").value, 0, chars().length - 1);
+    if (autoOn()) { const id = ext.chars[i] && ext.chars[i].id; if (id) FA.update((st) => { if (st.chars.some((c) => c.id === id)) st.ci = id; }); readExt(); pullExt(); }
+    else S.ci = i;
+    picked = { a: -1, m: -1, f: "" }; save(); paint();
+  });
   // Antippen übernimmt den Wert in den Wurf (Attribut -> W6, Merkmal -> MW6, Fertigkeit -> Rang), nochmal Antippen nimmt ihn wieder heraus
   $("charcont").addEventListener("click", (e) => {
     const mbtn = e.target.closest(".cmod button");
     if (mbtn) { if (!mbtn.disabled) { S.wmod = clamp(S.wmod + +mbtn.dataset.d, -3, 3); save(); paint(); } return; }
-    const b = e.target.closest(".cchip"); const ch = S.chars[S.ci]; if (!b || b.disabled || !ch || !b.dataset.k) return;
+    const b = e.target.closest(".cchip"); const ch = curCh(); if (!b || b.disabled || !ch || !b.dataset.k) return;
     const k = b.dataset.k, i = +b.dataset.i;
     if (k === "a") { if (picked.a === i && S.nw === ch.a[i]) { S.nw = 0; picked.a = -1; } else { S.nw = ch.a[i]; picked.a = i; } }
     else if (k === "m") { const v = ch.m[i].v; if (picked.m === i && S.nm === v) { S.nm = 0; picked.m = -1; } else { S.nm = v; picked.m = i; } }
@@ -1690,6 +1755,12 @@
 
   // Eingabe in den Einstellungen
   function renderEditor() {
+    const auto = autoOn();
+    $("ed-wrap").hidden = auto;
+    $("csrc-msg").textContent = auto ? "Der Charakter kommt aus der Charakter-Extension, dort änderst Du ihn auch. Furcht, Erschöpfung und Wundfolgen wirken beim Würfeln von selbst."
+      : S.src === "manual" ? "Du gibst den Charakter hier selbst ein, Furcht und Erschöpfung stellst Du von Hand ein."
+      : "In der Charakter-Extension gibt es noch keinen Charakter. Bis dahin gilt die manuelle Eingabe.";
+    if (auto) return;
     const sel = $("ed-sel"), body = $("ed-body"), ch = S.chars[S.ci];
     sel.textContent = ""; S.chars.forEach((c, i) => { const o = mk("option", "", c.n || `Charakter ${i + 1}`); o.value = i; sel.appendChild(o); });
     if (ch) sel.value = S.ci;
@@ -1835,12 +1906,12 @@
     paint();
   });
   const bump = (el) => { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); };
-  $("btn-exh").addEventListener("click", () => { S.exh = (S.exh + 1) % 3; save(); paint(); bump($("btn-exh")); });
-  $("btn-fear").addEventListener("click", () => { S.fear = (S.fear + 1) % 3; save(); paint(); bump($("btn-fear")); });
+  $("btn-exh").addEventListener("click", () => { if (autoOn()) return; S.exh = (S.exh + 1) % 3; save(); paint(); bump($("btn-exh")); });
+  $("btn-fear").addEventListener("click", () => { if (autoOn()) return; S.fear = (S.fear + 1) % 3; save(); paint(); bump($("btn-fear")); });
   document.querySelectorAll("#dots-exh button").forEach((b) =>
-    b.addEventListener("click", () => { const l = +b.dataset.l; S.exh = S.exh === l ? l - 1 : l; save(); paint(); bump($("btn-exh")); }));
+    b.addEventListener("click", () => { if (autoOn()) return; const l = +b.dataset.l; S.exh = S.exh === l ? l - 1 : l; save(); paint(); bump($("btn-exh")); }));
   document.querySelectorAll("#dots-fear button").forEach((b) =>
-    b.addEventListener("click", () => { const l = +b.dataset.l; S.fear = S.fear === l ? l - 1 : l; save(); paint(); bump($("btn-fear")); }));
+    b.addEventListener("click", () => { if (autoOn()) return; const l = +b.dataset.l; S.fear = S.fear === l ? l - 1 : l; save(); paint(); bump($("btn-fear")); }));
   $("sdone").addEventListener("click", () => setSettings(false));
   $("initx").addEventListener("click", () => { try { localStorage.removeItem(INIT_KEY); } catch {} updateUi(); });
   // Charakter von Hand an die SL schicken; die SL-Extension bestätigt den Empfang
@@ -1945,6 +2016,7 @@
       const L = magicLines(msg);
       msg.summary = `${label(msg)}: ${[L.txt, ...L.subs].join(", ")}`;
       const mk2 = maskRoll; await send(msg, msg.hidden); if (mk2) await sendMasked(msg).catch(() => {});
+      const mg = magicOf(msg.dice); if (!mg.unleash && mg.corr > 0) propose("corr", mg.corr, "Zauberwurf");
     }
 
     // Initiative: der nächste Wurf nach dem Aufruf der SL ist immer 1W6, unabhängig von der Auswahl

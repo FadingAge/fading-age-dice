@@ -3,6 +3,7 @@
   <body>
     <script type="module">
       import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+      import { useAuto } from "./fa-core.js";
 
       const CHANNEL = "de.fadingage.dice";
       const BASE = "https://fadingage.github.io/fading-age-dice/";
@@ -121,6 +122,7 @@
         const shareChar = async (force) => {
           try {
             if ((await OBR.player.getRole()) === "GM") return; // die SL legt ihre Charaktere in der SL-Extension an
+            if (useAuto()) return; // im Modus Automatisch teilt die Charakter-Extension den Charakter (mit Wundfolgen und Zustand)
             const m = await mySnap(), key = JSON.stringify(m);
             if (!force && key === lastChar) return;
             lastChar = key; await OBR.broadcast.sendMessage(CHARS, m, { destination: "ALL" });
