@@ -95,6 +95,39 @@
   .log em { font-style: normal; color: var(--mut2); font-size: 11px; }
   .hint { margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: var(--mut); }
   textarea.raw { width: 100%; box-sizing: border-box; min-height: 120px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 11px; font-family: ui-monospace, monospace; }
+  .tabs button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sw { display: grid; grid-template-columns: 74px repeat(4, 1fr); gap: 4px; align-items: center; text-align: center; }
+  .sw .hd { font-size: 11px; color: var(--mut2); font-weight: 700; }
+  .sw .ty { text-align: left; font-size: 13px; font-weight: 700; }
+  .sw .v { padding: 5px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 17px; font-weight: 800; color: var(--txt); }
+  .sw .v.r { color: var(--acc2); }
+  .gc { padding: 8px 10px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .gc.eq { border-color: var(--acc); }
+  .gc .gh { display: flex; align-items: center; gap: 8px; }
+  .gc .gn { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
+  .gc .gm { margin-top: 3px; font-size: 12px; color: var(--mut); overflow-wrap: anywhere; }
+  .gc .ge { margin-top: 2px; font-size: 12px; color: var(--txt); opacity: .85; overflow-wrap: anywhere; }
+  .hold { flex: none; padding: 5px 9px; border: 1px solid var(--line2); border-radius: 8px; background: var(--bg); color: var(--mut); font-size: 12px; font-weight: 700; }
+  .hold.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
+  .dr { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--mut); }
+  .dpips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .dp { width: 22px; height: 22px; padding: 0; border: 2px solid var(--acc2); border-radius: 5px; background: transparent; }
+  .dp.on { background: var(--acc2); }
+  .rn { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+  .rn div { padding: 4px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); text-align: center; }
+  .rn small { display: block; font-size: 11px; color: var(--mut); }
+  .rn b { font-size: 18px; color: var(--txt); }
+  .tg { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 6px; }
+  .tg button { padding: 4px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--mut); font-size: 12px; font-weight: 700; }
+  .tg button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
+  .ml { display: block; margin: 6px 0 2px; font-size: 11px; color: var(--mut); }
+  .mun { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .mun button { width: 24px; height: 24px; padding: 0; border: 2px solid var(--line2); border-radius: 5px; background: transparent; }
+  .mun button.on { background: var(--mut2); border-color: var(--mut2); }
+  .pre { width: 100%; box-sizing: border-box; height: 34px; margin: 6px 0 4px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--bg); color: var(--mut); font-size: 13px; }
+  .f3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .bkrow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .bkrow .big { margin-top: 0; padding: 9px 4px; font-size: 14px; }
   .empty { text-align: center; padding: 26px 8px 8px; color: var(--mut); line-height: 1.5; }
 </style>
 </head>
@@ -120,8 +153,9 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignorie
 (() => { try { const t = JSON.parse(lsGet("fa-dice3") || "{}").theme; if (window.FA_THEMES && window.FA_THEMES[t]) document.documentElement.dataset.theme = t; } catch { /* ignorieren */ } })();
 
 let S = FA.readStore(), raw = lsGet(FA.STORE);
-let tab = ["bogen", "fert", "notiz", "verlauf"].includes(lsGet("fa-char-tab")) ? lsGet("fa-char-tab") : "bogen";
-let edit = false, pending = null, delArm = false, exportTxt = null, importOpen = false, note = "";
+let tab = ["bogen", "fert", "gear", "notiz", "verlauf"].includes(lsGet("fa-char-tab")) ? lsGet("fa-char-tab") : "bogen";
+let edit = false, pending = null, delArm = false, importOpen = false, note = "";
+const bk = { msg: "", text: "", pending: null, file: null }; // Sicherung: Meldung, Textfeld, gelesene Charaktere zum Bestätigen
 // Beim Bearbeiten merken wir uns die Attribute von vorher. Beim Beenden geht eine Meldung an die SL, falls sich etwas geändert hat.
 // "fresh" = der Charakter wurde gerade erst angelegt, dann ist das die normale Erstellung und es gibt keine Meldung.
 let editBase = null;
@@ -167,7 +201,7 @@ $("edit").addEventListener("click", () => { edit = !edit; if (edit) startEdit(fa
 function paintTabs() {
   const t = $("tabs"); t.textContent = "";
   const c = cur(), np = c ? S.q.filter((p) => p.cid === c.id).length : 0;
-  [["bogen", "Bogen"], ["fert", "Fertigkeiten"], ["notiz", "Notizen"], ["verlauf", "Verlauf"]].forEach(([k, n]) => {
+  [["bogen", "Bogen"], ["fert", "Fertigkeiten"], ["gear", "Ausrüstung"], ["notiz", "Notizen"], ["verlauf", "Verlauf"]].forEach(([k, n]) => {
     const b = h("button", k === tab ? "on" : "", n); b.type = "button";
     if (k === "bogen" && np) b.appendChild(h("i", "dot"));
     b.addEventListener("click", () => { tab = k; lsSet("fa-char-tab", k); render(); });
@@ -279,6 +313,135 @@ function viewBogen(box, c) {
   T.forEach((t) => box.appendChild(trackRow(c, t)));
 }
 
+
+// ---------- Ausrüstung ----------
+const AT_FULL = FA.AT_SHORT;
+function dpips(cur, max, onset) { // verbleibende Haltbarkeit: ausgefüllt = noch da, oberstes ausgefülltes Kästchen nochmal antippen nimmt es weg
+  const w = h("div", "dpips");
+  for (let i = 1; i <= max; i++) { const b = h("button", "dp" + (i <= cur ? " on" : "")); b.type = "button"; b.title = `Haltbarkeit ${i}`; b.addEventListener("click", () => onset(cur === i ? i - 1 : i)); w.appendChild(b); }
+  return w;
+}
+function durRow(label, cur, max, onset) {
+  const r = h("div", "dr"); r.appendChild(h("span", "", label));
+  if (!max) r.appendChild(h("span", "", "keine")); else { r.appendChild(dpips(cur, max, onset)); }
+  return r;
+}
+function toggles(labels, sel, ontoggle) {
+  const g = h("div", "tg");
+  labels.forEach((n, i) => { const b = h("button", sel.includes(i) ? "on" : "", n); b.type = "button"; b.addEventListener("click", () => ontoggle(i)); g.appendChild(b); });
+  return g;
+}
+const nums = (lo, hi, f = String) => Array.from({ length: hi - lo + 1 }, (_, i) => [lo + i, f(lo + i)]);
+const preset = (rows, onpick) => { const s = selectIn([["", "Aus der Tabelle wählen ..."], ...rows.map((r, i) => [i, r[0]])], "", (v) => { if (v !== "") onpick(+v); }); s.className = "pre"; s.setAttribute("aria-label", "Aus der Tabelle wählen"); return s; };
+const holdBtn = (on, onclick, label = "In der Hand") => { const b = h("button", "hold" + (on ? " on" : ""), on ? label + " ✓" : label); b.type = "button"; b.addEventListener("click", onclick); return b; };
+
+function viewGear(box, c) {
+  // Schwellen
+  const R = FA.resist(c), SW = FA.schwellen(c);
+  box.appendChild(h("h2", "", "Schadensschwellen"));
+  const sc = h("div", "card"), sw = h("div", "sw");
+  sw.appendChild(h("span")); ["1", "2", "3", "4"].forEach((n) => sw.appendChild(h("span", "hd", "Schw. " + n)));
+  FA.DMG.forEach((n, i) => { sw.appendChild(h("span", "ty", n)); SW[i].forEach((v, j) => sw.appendChild(h("span", "v" + (j === 0 ? " r" : ""), String(v)))); });
+  sc.appendChild(sw);
+  sc.appendChild(h("div", "hint", `Schwelle 1 ist die wirksame Resistenz (Wucht ${R[0]}, Klinge ${R[1]}, Geschoss ${R[2]}). Die übrigen kommen aus Attributen und Stufe ${c.tr.lvl}. Rüstung und Schild zählen nur mit Haltbarkeit, ein Schild nur in der Hand.`));
+  if (edit) {
+    sc.appendChild(field("Persönlicher Resistenzbonus (gegen alle drei Arten, zum Beispiel Wertsteigerung des Weltlichen)", selectIn(nums(0, 6, (v) => "+" + v), c.rb, (v) => setC((x) => { x.rb = +v; }))));
+  } else if (c.rb) sc.appendChild(h("div", "hint", `Persönlicher Bonus: +${c.rb}`));
+  box.appendChild(sc);
+
+  // Waffen
+  const used = FA.handsUsed(c);
+  box.appendChild(h("h2", "", `Waffen (Hände ${used} von 2)`));
+  if (!c.w.length) box.appendChild(h("div", "none", edit ? "Noch keine Waffe. Ohne Waffe kämpft Ihr unbewaffnet (Kraft oder Geschick, Wucht)." : "Keine Waffe eingetragen. Zum Eintragen oben auf den Stift tippen."));
+  c.w.forEach((w, i) => {
+    const card = h("div", "gc" + (w.eq ? " eq" : "")), hd = h("div", "gh");
+    hd.appendChild(h("div", "gn", w.n || "(ohne Name)"));
+    hd.appendChild(holdBtn(w.eq, () => setC((x) => { x.w[i].eq = !x.w[i].eq; })));
+    card.appendChild(hd);
+    if (edit) {
+      card.appendChild(preset(FA.WAFFEN, (k) => setC((x) => { const eq = x.w[i].eq; x.w[i] = { ...FA.weaponPreset(k), eq }; })));
+      card.appendChild(field("Name", textIn(w.n, 40, (v) => setC((x) => { x.w[i].n = v; }))));
+      const f2 = h("div", "f2");
+      f2.appendChild(field("Hände", selectIn([[1, "Einhändig"], [2, "Zweihändig"]], w.h, (v) => setC((x) => { x.w[i].h = +v; }))));
+      f2.appendChild(field("Reichweite", textIn(w.rw, 8, (v) => setC((x) => { x.w[i].rw = v; }))));
+      card.appendChild(f2);
+      card.appendChild(h("span", "ml", "Schadensart"));
+      card.appendChild(toggles(FA.DMG, w.art, (k) => setC((x) => { const a = x.w[i].art; x.w[i].art = a.includes(k) ? a.filter((v) => v !== k) : [...a, k]; })));
+      card.appendChild(h("span", "ml", "Attribute für den Angriff"));
+      card.appendChild(toggles(AT_FULL, w.at, (k) => setC((x) => { const a = x.w[i].at; x.w[i].at = a.includes(k) ? a.filter((v) => v !== k) : [...a, k]; })));
+      card.appendChild(field("Eigenschaften", textIn(w.e, 80, (v) => setC((x) => { x.w[i].e = v; }))));
+      card.appendChild(field("Höchste Haltbarkeit", selectIn(nums(0, 4), w.hm, (v) => setC((x) => { x.w[i].hm = +v; x.w[i].hz = Math.min(x.w[i].hz, +v); }))));
+    } else {
+      card.appendChild(h("div", "gm", [w.art.map((k) => FA.DMG[k]).join(" / "), w.at.map((k) => AT_FULL[k]).join(" / "), w.rw ? "RW " + w.rw : "", w.h === 2 ? "zweihändig" : "einhändig"].filter(Boolean).join(" · ")));
+      if (w.e) card.appendChild(h("div", "ge", w.e));
+    }
+    card.appendChild(durRow("Haltbarkeit", w.hz, w.hm, (v) => setC((x) => { x.w[i].hz = v; })));
+    if (edit) { const del = h("button", "btn", "Waffe entfernen"); del.type = "button"; del.style.marginTop = "8px"; del.addEventListener("click", () => setC((x) => { x.w.splice(i, 1); })); card.appendChild(del); }
+    box.appendChild(card);
+  });
+  if (edit && c.w.length < FA.MAX.w) { const a = h("button", "add", "+ Waffe"); a.type = "button"; a.addEventListener("click", () => setC((x) => { x.w.push(FA.cleanWeapon({ n: "", at: [0], art: [1], hm: 3, hz: 3 })); })); box.appendChild(a); }
+
+  // Rüstung
+  box.appendChild(h("h2", "", "Rüstung"));
+  const ar = c.ar, ac = h("div", "gc");
+  ac.appendChild(h("div", "gn", ar.n || (ar.r.some((v) => v > 0) ? "(ohne Name)" : "Keine Rüstung")));
+  if (edit) {
+    ac.appendChild(preset(FA.RUESTUNGEN, (k) => setC((x) => { x.ar = FA.armorPreset(k); })));
+    ac.appendChild(field("Name", textIn(ar.n, 40, (v) => setC((x) => { x.ar.n = v; }))));
+    const rg = h("div", "f3"); FA.DMG.forEach((n, k) => rg.appendChild(field(n, selectIn(nums(0, 12), ar.r[k], (v) => setC((x) => { x.ar.r[k] = +v; })))));
+    ac.appendChild(rg);
+    ac.appendChild(field("Eigenschaften", textIn(ar.e, 80, (v) => setC((x) => { x.ar.e = v; }))));
+    ac.appendChild(field("Höchste Haltbarkeit", selectIn(nums(0, 8), ar.hm, (v) => setC((x) => { x.ar.hm = +v; x.ar.hz = Math.min(x.ar.hz, +v); }))));
+  } else if (ar.r.some((v) => v > 0)) {
+    const rn = h("div", "rn"); FA.DMG.forEach((n, k) => { const d = h("div"); d.appendChild(h("small", "", n)); d.appendChild(h("b", "", String(ar.r[k]))); rn.appendChild(d); }); ac.appendChild(rn);
+    if (ar.e) ac.appendChild(h("div", "ge", ar.e));
+  } else ac.appendChild(h("div", "gm", `Ohne Rüstung gilt die Grundresistenz ${FA.BASIS_RES}.`));
+  if (ar.r.some((v) => v > 0)) {
+    ac.appendChild(durRow("Haltbarkeit", ar.hz, ar.hm, (v) => setC((x) => { x.ar.hz = v; })));
+    if (ar.hm && !ar.hz) ac.appendChild(h("div", "gm", "Kein Schutz mehr: es zählt die Grundresistenz " + FA.BASIS_RES + "."));
+  }
+  box.appendChild(ac);
+
+  // Schild
+  box.appendChild(h("h2", "", "Schild"));
+  const sh = c.sh, hasSh = !!(sh.n || sh.v || sh.r), sc2 = h("div", "gc" + (sh.act ? " eq" : "")), sh1 = h("div", "gh");
+  sh1.appendChild(h("div", "gn", sh.n || (hasSh ? "(ohne Name)" : "Kein Schild")));
+  if (hasSh) sh1.appendChild(holdBtn(sh.act, () => setC((x) => { x.sh.act = !x.sh.act; })));
+  sc2.appendChild(sh1);
+  if (edit) {
+    sc2.appendChild(preset(FA.SCHILDE, (k) => setC((x) => { const act = x.sh.act; x.sh = { ...FA.shieldPreset(k), act }; })));
+    sc2.appendChild(field("Name", textIn(sh.n, 40, (v) => setC((x) => { x.sh.n = v; }))));
+    const f2 = h("div", "f2");
+    f2.appendChild(field("Schildwert (Verteidigung)", selectIn(nums(0, 12, (v) => (v ? v + "W6" : "-")), sh.v, (v) => setC((x) => { x.sh.v = +v; }))));
+    f2.appendChild(field("Resistenz", selectIn(nums(0, 6, (v) => "+" + v), sh.r, (v) => setC((x) => { x.sh.r = +v; }))));
+    sc2.appendChild(f2);
+    sc2.appendChild(field("Eigenschaften", textIn(sh.e, 60, (v) => setC((x) => { x.sh.e = v; }))));
+    sc2.appendChild(field("Höchste Haltbarkeit", selectIn(nums(0, 4), sh.hm, (v) => setC((x) => { x.sh.hm = +v; x.sh.hz = Math.min(x.sh.hz, +v); }))));
+  } else if (hasSh) {
+    sc2.appendChild(h("div", "gm", [sh.v ? `Schildwert ${sh.v}W6` : "", sh.r ? `Resistenz +${sh.r}` : "", "belegt eine Hand"].filter(Boolean).join(" · ")));
+    if (sh.e) sc2.appendChild(h("div", "ge", sh.e));
+  }
+  if (hasSh) sc2.appendChild(durRow("Haltbarkeit", sh.hz, sh.hm, (v) => setC((x) => { x.sh.hz = v; })));
+  box.appendChild(sc2);
+
+  // Munition
+  const ammo = c.w.some((w) => /Nachladen/.test(w.e));
+  if (edit || c.mun.n || c.mun.u || ammo) {
+    box.appendChild(h("h2", "", "Munition"));
+    const mc = h("div", "gc");
+    if (edit) mc.appendChild(field("Behälter (zum Beispiel Köcher)", textIn(c.mun.n, 30, (v) => setC((x) => { x.mun.n = v; }))));
+    else mc.appendChild(h("div", "gn", c.mun.n || "Munition"));
+    mc.appendChild(h("div", "gm", `${10 - c.mun.u} von 10 Schuss übrig. Markiert ist jeder abgegebene Schuss.`));
+    const g = h("div", "mun");
+    for (let i = 1; i <= 10; i++) { const b = h("button", i <= c.mun.u ? "on" : ""); b.type = "button"; b.title = `Schuss ${i}`; b.addEventListener("click", () => setC((x) => { x.mun.u = x.mun.u === i ? i - 1 : i; })); g.appendChild(b); }
+    mc.appendChild(g);
+    const row = h("div", "bkrow"), sh3 = h("button", "btn", "Schuss abgeben"), fill = h("button", "btn", "Behälter auffüllen");
+    sh3.type = fill.type = "button"; sh3.disabled = c.mun.u >= 10; fill.disabled = c.mun.u === 0;
+    sh3.addEventListener("click", () => setC((x) => { x.mun.u = Math.min(10, x.mun.u + 1); })); fill.addEventListener("click", () => setC((x) => { x.mun.u = 0; }));
+    row.appendChild(sh3); row.appendChild(fill); mc.appendChild(row); box.appendChild(mc);
+  }
+}
+
 // ---------- Fertigkeiten ----------
 const ROM = [[1, "I"], [2, "II"], [3, "III"]];
 // Liste mit Name und Wert; kind "r" Rang I-III, "n" Zahl 1-3, "s" nur Text
@@ -350,6 +513,74 @@ function viewNotiz(box, c) {
 }
 
 // ---------- Verlauf und Daten ----------
+// ---------- Sicherung: Datei und Text ----------
+const BK_MAX = 400000;
+const bkText = () => JSON.stringify({ app: "fading-age-char", fa: "char1", format: 1, saved: new Date().toISOString(), chars: S.chars }, null, 1);
+function bkRead(text) {
+  bk.pending = null;
+  try {
+    if (String(text).length > BK_MAX) throw new Error("zu groß");
+    const d = JSON.parse(text), list = d && Array.isArray(d.chars) ? d.chars.slice(0, FA.MAX.chars) : [];
+    if (!list.length || (d.fa !== "char1" && d.app !== "fading-age-char")) throw new Error("fremd");
+    bk.pending = list.map((o) => FA.cleanChar(o)); // Kennungen bleiben, damit eine zweite Sicherung nichts doppelt anlegt
+    bk.msg = `Gefunden: ${bk.pending.length === 1 ? "1 Charakter" : bk.pending.length + " Charaktere"} (${bk.pending.map((c) => c.n || "Unbenannt").join(", ")}). Gleiche Charaktere werden ersetzt, neue kommen dazu.`;
+  } catch { bk.msg = "Das ist keine Sicherung der Charakter-Extension. Es wurde nichts geändert."; }
+  render();
+}
+function bkApply() {
+  const list = bk.pending; if (!list) return; let add = 0, rep = 0;
+  mut((s) => {
+    list.forEach((cc) => {
+      const i = s.chars.findIndex((x) => x.id === cc.id);
+      if (i >= 0) { s.chars[i] = cc; rep++; } else if (s.chars.length < FA.MAX.chars) { s.chars.push(cc); add++; } else return;
+      FA.selfEvent(s, cc.id, "Charakter aus Sicherung geladen: " + (cc.n || "Unbenannt"));
+    });
+    if (!s.ci && s.chars.length) s.ci = s.chars[0].id;
+  });
+  bk.pending = null; bk.text = ""; importOpen = false; bk.msg = `Geladen: ${add} neu, ${rep} ersetzt.`; render();
+}
+function backupUI(box) {
+  box.appendChild(h("p", "hint", "Sichere Deine Charaktere, zum Beispiel für ein anderes Gerät. Sie liegen sonst nur in diesem Browser."));
+  const r1 = h("div", "bkrow"), file = h("button", "big", "Als Datei speichern"), copy = h("button", "big alt", "Text kopieren");
+  file.disabled = copy.disabled = !S.chars.length;
+  file.addEventListener("click", () => {
+    try {
+      const a = document.createElement("a"), d = new Date().toISOString().slice(0, 10);
+      a.href = URL.createObjectURL(new Blob([bkText()], { type: "text/plain" })); a.download = `fading-age-charaktere-${d}.txt`;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      bk.msg = "Datei wird gespeichert. Falls nichts passiert, nimm \"Text kopieren\".";
+    } catch { bk.msg = "Das Speichern als Datei geht hier nicht. Nimm \"Text kopieren\"."; }
+    render();
+  });
+  copy.addEventListener("click", async () => {
+    const t = bkText(); bk.text = t; let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch { ok = false; }
+    bk.msg = ok ? "Text kopiert. Füge ihn zum Beispiel in eine Notiz ein." : "Der Text steht im Feld. Markiere ihn und kopiere ihn von Hand.";
+    render(); const ta = box.ownerDocument.getElementById("bk-text"); if (ta && !ok) { ta.focus(); ta.select(); }
+  });
+  r1.appendChild(file); r1.appendChild(copy); box.appendChild(r1);
+  const r2 = h("div", "bkrow"), pick = h("button", "big alt", "Datei wählen"), load = h("button", "big alt", "Text laden"), fi = h("input");
+  fi.type = "file"; fi.accept = ".txt,.json,text/plain,application/json"; fi.hidden = true;
+  pick.addEventListener("click", () => { fi.value = ""; fi.click(); });
+  fi.addEventListener("change", () => {
+    const f = fi.files && fi.files[0]; if (!f) return;
+    if (f.size > BK_MAX) { bk.msg = "Die Datei ist zu groß für eine Sicherung."; render(); return; }
+    const r = new FileReader(); r.onload = () => bkRead(String(r.result)); r.onerror = () => { bk.msg = "Die Datei konnte nicht gelesen werden."; render(); }; r.readAsText(f);
+  });
+  load.addEventListener("click", () => { const tx = bk.text.trim(); if (!tx) { bk.msg = "Füge zuerst einen Sicherungstext in das Feld ein."; render(); return; } bkRead(tx); });
+  r2.appendChild(pick); r2.appendChild(load); box.appendChild(r2); box.appendChild(fi);
+  const ta = h("textarea", "raw"); ta.id = "bk-text"; ta.style.marginTop = "8px"; ta.spellcheck = false; ta.value = bk.text;
+  ta.placeholder = "Hier steht der Sicherungstext. Zum Laden einen Text einfügen und auf \"Text laden\" tippen.";
+  ta.addEventListener("input", () => { bk.text = ta.value; }); box.appendChild(ta);
+  if (bk.msg) box.appendChild(h("p", "hint", bk.msg));
+  if (bk.pending) {
+    const bar = h("div", "bar info"); bar.style.marginTop = "8px"; bar.appendChild(h("span", "", "Übernehmen?"));
+    const ok = h("button", "btn go", "Übernehmen"), no = h("button", "btn", "Abbrechen");
+    ok.addEventListener("click", bkApply); no.addEventListener("click", () => { bk.pending = null; bk.msg = "Abgebrochen, nichts geändert."; render(); });
+    bar.appendChild(ok); bar.appendChild(no); box.appendChild(bar);
+  }
+}
+
 const hhmm = (t) => new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
 function legacyChars() { try { const d = JSON.parse(lsGet("fa-dice3") || "{}"); return Array.isArray(d.chars) ? d.chars : []; } catch { return []; } }
 function importLegacy() {
@@ -371,22 +602,10 @@ function viewVerlauf(box, c) {
   box.appendChild(h("h2", "", "Daten"));
   const old = legacyChars();
   if (old.length) { const b = h("button", "big alt", `Aus der Würfel-Extension übernehmen (${old.length})`); b.addEventListener("click", importLegacy); box.appendChild(b); }
-  const ex = h("button", "big alt", "Sicherung anzeigen (zum Kopieren)"); ex.addEventListener("click", () => { exportTxt = JSON.stringify({ fa: "char1", chars: S.chars }); importOpen = false; render(); }); box.appendChild(ex);
-  if (exportTxt != null) { const t = h("textarea", "raw"); t.readOnly = true; t.value = exportTxt; t.addEventListener("focus", () => t.select()); box.appendChild(t); box.appendChild(h("p", "hint", "Text kopieren und irgendwo sicher ablegen. Mit \"Sicherung laden\" kommt alles zurück.")); }
-  const im = h("button", "big alt", "Sicherung laden"); im.addEventListener("click", () => { importOpen = !importOpen; exportTxt = null; render(); }); box.appendChild(im);
-  if (importOpen) {
-    const t = h("textarea", "raw"); t.placeholder = "Sicherungstext hier einfügen"; box.appendChild(t);
-    const go = h("button", "big", "Laden und hinzufügen"); go.addEventListener("click", () => {
-      try {
-        const d = JSON.parse(t.value); const list = Array.isArray(d.chars) ? d.chars : []; if (!list.length) throw new Error("leer");
-        let n = 0; mut((s) => { list.forEach((o) => { if (s.chars.length >= FA.MAX.chars) return; const cc = FA.cleanChar({ ...o, id: "" }); cc.id = FA.uid(); s.chars.push(cc); n++; FA.selfEvent(s, cc.id, "Charakter aus Sicherung geladen: " + (cc.n || "Unbenannt")); }); if (!s.ci && s.chars.length) s.ci = s.chars[0].id; });
-        importOpen = false; note = `${n} Charakter${n === 1 ? "" : "e"} geladen.`; render();
-      } catch { note = "Das war keine gültige Sicherung."; render(); }
-    }); box.appendChild(go);
-  }
+  backupUI(box);
   const del = h("button", "big alt", delArm ? `"${c.n || "Unbenannt"}" wirklich löschen?` : "Diesen Charakter löschen"); if (delArm) del.style.borderColor = "#b83a3a";
   del.addEventListener("click", () => { if (!delArm) { delArm = true; render(); return; } delArm = false; mut((s) => { s.chars = s.chars.filter((x) => x.id !== c.id); }); }); box.appendChild(del);
-  box.appendChild(h("p", "hint", "Der Charakter liegt in diesem Browser. Für Gerätewechsel oder zur Sicherheit: Sicherung anzeigen und den Text aufheben."));
+  box.appendChild(h("p", "hint", "Der Charakter liegt in diesem Browser. Für Gerätewechsel oder zur Sicherheit: Sicherung als Datei speichern und aufheben."));
 }
 
 // ---------- Leerer Zustand ----------
@@ -404,17 +623,12 @@ function render() {
   const box = $("main"); box.textContent = ""; const c = cur();
   if (!c) { $("tabs").textContent = ""; if (importOpen) { /* Ladefeld ohne Charakter */ const b = h("div"); viewImportOnly(b); box.appendChild(b); } else viewEmpty(box); return; }
   paintTabs();
-  if (tab === "bogen") viewBogen(box, c); else if (tab === "fert") viewFert(box, c); else if (tab === "notiz") viewNotiz(box, c); else viewVerlauf(box, c);
+  if (tab === "bogen") viewBogen(box, c); else if (tab === "fert") viewFert(box, c); else if (tab === "gear") viewGear(box, c); else if (tab === "notiz") viewNotiz(box, c); else viewVerlauf(box, c);
   window.scrollTo(0, keep.y);
 }
 function viewImportOnly(box) {
-  const t = h("textarea", "raw"); t.placeholder = "Sicherungstext hier einfügen"; box.appendChild(t);
-  const go = h("button", "big", "Laden"); go.addEventListener("click", () => {
-    try { const d = JSON.parse(t.value); const list = Array.isArray(d.chars) ? d.chars : []; if (!list.length) throw new Error("leer");
-      mut((s) => { list.forEach((o) => { if (s.chars.length >= FA.MAX.chars) return; const cc = FA.cleanChar({ ...o, id: "" }); cc.id = FA.uid(); s.chars.push(cc); FA.selfEvent(s, cc.id, "Charakter aus Sicherung geladen: " + (cc.n || "Unbenannt")); }); if (!s.ci && s.chars.length) s.ci = s.chars[0].id; }); importOpen = false; render();
-    } catch { note = "Das war keine gültige Sicherung."; render(); }
-  }); box.appendChild(go);
-  const back = h("button", "big alt", "Zurück"); back.addEventListener("click", () => { importOpen = false; render(); }); box.appendChild(back);
+  backupUI(box);
+  const back = h("button", "big alt", "Zurück"); back.addEventListener("click", () => { importOpen = false; bk.pending = null; render(); }); box.appendChild(back);
 }
 
 // Änderungen aus anderen Fenstern (Würfel, SL im Hintergrund) übernehmen, solange gerade nichts getippt wird
