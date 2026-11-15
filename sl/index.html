@@ -159,6 +159,18 @@
   .chev { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(-45deg); transition: transform .15s; }
   details[open] > summary > .chev { transform: rotate(45deg); }
   .pcard { margin-bottom: 8px; }
+  .ac.hurt { border-color: #d9524a; background: rgba(217,82,74,.16); } .ac.hurt b { color: #ff8f86; }
+  .ztr { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .zt { display: flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; }
+  .zt i { font-style: normal; color: var(--mut); } .zt b { min-width: 28px; text-align: center; color: var(--txt); }
+  .zt em { font-style: normal; font-weight: 800; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--acc); color: var(--onacc); }
+  .zt button { width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; cursor: pointer; font-size: 14px; line-height: 1; }
+  .zt button:hover { border-color: var(--line2); }
+  .zt.fear i { color: #b79cf0; } .zt.exh i { color: #e6a35c; }
+  .chp.dead { border-color: #b83a3a; color: #ff9a9a; }
+  .pr .add { flex: none; font-weight: 800; font-size: 12px; padding: 1px 7px; border-radius: 8px; background: var(--acc); color: var(--onacc); }
+  .apply { margin-top: 8px; }
+  .achips button:disabled { opacity: .5; cursor: default; }
   .prow2 { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 8px; }
   .pst { flex: 1; text-align: center; } .pst .pl { font-size: 11px; font-weight: 700; color: var(--mut); margin-bottom: 3px; }
   .pst .step { justify-content: center; } .pst .step button { width: 28px; height: 32px; font-size: 16px; } .pst .step span { min-width: 30px; height: 32px; line-height: 32px; font-size: 16px; }
@@ -231,7 +243,8 @@
   import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
 
   const INIT = "de.fadingage.init", ROUND = "fa-sl-round", GOT = "fa-sl-got";
-  import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
+  import { ATTRS, ATTR_SHORT, KAMPF, ROMAN, ART, MAX, CH, KEYS, clamp as cl, txt as ctxt, cleanChar, effA, readJ, writeJ, readSet, readPChars, readLocal, readNotes } from "./common.js";
+  import { level } from "../fa-core.js";
   import { readLooks } from "./looks.js";
   import { RUECK, REAKTION, REAKTION_MOD, WUNDEN, EFFEKTE, EREIGNIS, HINTERHALT } from "./tabellen.js";
   const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
@@ -371,14 +384,40 @@
 
   // ---------- Charakterübersicht ----------
   function chips(items, cls) { const w = mk("div", "chips"); items.forEach((e) => { const c = mk("span", "chp " + (cls || ""), e.n); if (e.b) c.appendChild(mk("b", "", e.b)); w.appendChild(c); }); return w; }
-  function card(c, who, localId) {
+  // Furcht und Erschöpfung an den Spieler schicken: dessen Charakter-Extension trägt sie ein und meldet die neuen Werte zurück
+  const cond = (pid, kind, delta) => OBR.broadcast.sendMessage(CH, { type: "cond", pid, kind, delta }, { destination: "ALL" }).catch(() => {});
+  function card(c, who, localId, pid) {
     const el = mk("div", "ccard"), hd = mk("div", "chd");
     hd.appendChild(mk("div", "cn", c.n || "Ohne Namen"));
     if (who) hd.appendChild(mk("div", "cw", who));
     if (set.show.t && c.t !== "w") hd.appendChild(mk("div", "tag", ART[c.t]));
     if (localId) { hd.appendChild(mk("div", "tag", "eigener")); const b = mk("button", "mini", "Bearbeiten"); b.addEventListener("click", () => openEditor(localId)); hd.appendChild(b); }
     el.appendChild(hd);
-    if (set.show.a) { const g = mk("div", "attrs"); c.a.forEach((v, i) => { const a = mk("div", "ac"); a.title = ATTRS[i]; a.appendChild(mk("i", "", ATTR_SHORT[i])); a.appendChild(mk("b", "", String(v))); g.appendChild(a); }); el.appendChild(g); }
+    if (set.show.a) {
+      const g = mk("div", "attrs");
+      c.a.forEach((v, i) => {
+        const wf = i < 6 ? c.wf[i] : 0, a = mk("div", "ac" + (wf ? " hurt" : "")); a.title = wf ? `${ATTRS[i]}: ${effA(c, i)} (Grundwert ${v}, ${wf} Wundfolge${wf > 1 ? "n" : ""})` : ATTRS[i];
+        a.appendChild(mk("i", "", ATTR_SHORT[i])); a.appendChild(mk("b", "", String(effA(c, i)))); g.appendChild(a);
+      });
+      el.appendChild(g);
+    }
+    if (c.tr && pid) { // Zustand des Spielers: Furcht und Erschöpfung lassen sich hier anpassen
+      const z = mk("div", "ztr");
+      [["fear", "Furcht"], ["exh", "Erschöpfung"]].forEach(([k, n]) => {
+        const v = c.tr[k], w = mk("div", "zt " + k), m = mk("button", "", "-"), p = mk("button", "", "+");
+        m.title = n + " senken"; p.title = n + " erhöhen"; m.addEventListener("click", () => cond(pid, k, -1)); p.addEventListener("click", () => cond(pid, k, 1));
+        w.appendChild(mk("i", "", n)); w.appendChild(m); w.appendChild(mk("b", "", v + "/6")); w.appendChild(p);
+        if (level(v)) w.appendChild(mk("em", "", "Stufe " + ROMAN[level(v)]));
+        z.appendChild(w);
+      });
+      el.appendChild(z);
+      const info = [{ n: "Wunden", b: c.tr.wounds + "/7" }]; const wt = c.wf.reduce((a, v) => a + v, 0);
+      if (wt) info.push({ n: "Wundfolgen", b: String(wt) });
+      if (c.t !== "w") info.push({ n: "Korruption", b: String(c.tr.corr) });
+      if (c.t === "v") info.push({ n: "Brandmal", b: String(c.tr.brand) });
+      const ch = chips(info); if (c.dead) { const d = mk("span", "chp dead", "Gestorben: " + c.dead); ch.prepend(d); }
+      el.appendChild(ch);
+    }
     const sect = (label, items, cls) => { if (!items.length) return; el.appendChild(mk("div", "lab", label)); el.appendChild(chips(items, cls)); };
     if (set.show.x) sect("Makel", c.x.filter(Boolean).map((n) => ({ n })), "bad");
     if (set.show.f) sect("Fertigkeiten", c.f.map((e) => ({ n: e.n || "-", b: ROMAN[e.r] })));
@@ -392,7 +431,7 @@
     const pc = readPChars(), seen = new Set();
     party.filter((p) => p.role !== "GM").forEach((p) => {
       const e = pc[p.id]; seen.add(p.id);
-      if (e && e.c) box.appendChild(card(e.c, txt(p.name), null));
+      if (e && e.c) box.appendChild(card(e.c, txt(p.name), null, p.id));
       else box.appendChild(mk("div", "offline", `${txt(p.name)}: noch kein Charakter geteilt`));
     });
     const loc = readLocal();
@@ -466,12 +505,26 @@
     if (proll) {
       const S = hitsOf(proll), list = mk("div", "pres");
       ts.filter((t) => sel.has(t.key)).forEach((t) => {
-        const A = t.c.a[probe.a], d = S - A, cls = d >= 2 ? "crit" : d >= 0 ? "aff" : "ok", lbl = d >= 2 ? "kritisch betroffen" : d >= 0 ? "betroffen" : "nicht betroffen";
-        const r = mk("div", "pr " + cls); r.appendChild(mk("div", "nm", t.name)); r.appendChild(mk("div", "av", ATTR_SHORT[probe.a] + " " + A)); r.appendChild(mk("div", "vd", lbl)); list.appendChild(r);
+        const A = effA(t.c, probe.a), d = S - A, cls = d >= 2 ? "crit" : d >= 0 ? "aff" : "ok", lbl = d >= 2 ? "kritisch betroffen" : d >= 0 ? "betroffen" : "nicht betroffen";
+        const r = mk("div", "pr " + cls); r.appendChild(mk("div", "nm", t.name)); r.appendChild(mk("div", "av", ATTR_SHORT[probe.a] + " " + A));
+        if (!t.own && d >= 0) r.appendChild(mk("div", "add", d >= 2 ? "+2" : "+1"));
+        r.appendChild(mk("div", "vd", lbl)); list.appendChild(r);
       });
       if (!list.children.length) list.appendChild(mk("p", "hint", "Niemand ausgewählt."));
       b.appendChild(list);
-      b.appendChild(mk("p", "hint", "Betroffen ab Erfolge = Attribut, kritisch ab Attribut +2."));
+      // Auswirkung auf die Betroffenen: betroffen +1, kritisch betroffen +2 (Spieler mit Charakter-Extension, die SL schickt es ihnen direkt)
+      const aff = ts.filter((t) => sel.has(t.key) && !t.own && t.c.tr).map((t) => { const d = S - effA(t.c, probe.a); return { pid: t.key.slice(2), add: d >= 2 ? 2 : d >= 0 ? 1 : 0 }; }).filter((x) => x.add > 0);
+      if (aff.length) {
+        const ap = mk("div", "apply"); ap.appendChild(mk("div", "lab", "Auswirkung eintragen"));
+        const row = mk("div", "achips");
+        [["exh", "Erschöpfung"], ["fear", "Furcht"]].forEach(([k, n]) => {
+          const done = proll.applied && proll.applied[k], x = mk("button", done ? "on" : "", done ? n + " eingetragen" : `${n} für ${aff.length}`); x.disabled = !!done;
+          x.addEventListener("click", () => { aff.forEach((a) => cond(a.pid, k, a.add)); proll.applied = { ...(proll.applied || {}), [k]: true }; renderChars(); });
+          row.appendChild(x);
+        });
+        ap.appendChild(row); b.appendChild(ap);
+      }
+      b.appendChild(mk("p", "hint", "Betroffen ab Erfolge = Attribut, kritisch ab Attribut +2. Wundfolgen verringern das Attribut."));
     }
     det.appendChild(b); return det;
   }
@@ -606,7 +659,25 @@
     const rnd = tsub.a < 0;
     box.appendChild(rollBar(rnd ? "Wundfolge würfeln" : "Folge würfeln", rnd ? 2 : 1, rnd ? ["Attr.", "Folge"] : null, last && { dice: last.dice },
       (f) => { tres.wu = rnd ? { a: f[0] - 1, f: f[1], dice: f } : { a: tsub.a, f: f[0], dice: f }; renderTab(); setTimeout(hitScroll, 50); }, "w", () => { tres.wu = null; }));
-    if (last) { const w = mk("div", "wres", ""); w.appendChild(document.createTextNode(WUNDEN[last.a].f[last.f - 1])); w.appendChild(mk("span", "", WUNDEN[last.a].a)); box.appendChild(w); }
+    if (last) {
+      const w = mk("div", "wres", ""); w.appendChild(document.createTextNode(WUNDEN[last.a].f[last.f - 1])); w.appendChild(mk("span", "", WUNDEN[last.a].a)); box.appendChild(w);
+      // Als Vorschlag an einen Spieler schicken: er trägt die Wundfolge in seinem Charakterbogen selbst ein
+      const pcs = readPChars(), ps = party.filter((p) => p.role !== "GM" && pcs[p.id] && pcs[p.id].c && pcs[p.id].c.tr);
+      if (ps.length) {
+        box.appendChild(mk("div", "lab", "Wundfolge vorschlagen an"));
+        const row = mk("div", "achips"); last.sent = last.sent || {};
+        ps.forEach((p) => {
+          const done = last.sent[p.id], x = mk("button", done ? "on" : "", done ? txt(p.name) + " gesendet" : txt(p.name)); x.disabled = !!done;
+          x.addEventListener("click", () => {
+            last.sent[p.id] = true;
+            OBR.broadcast.sendMessage(CH, { type: "prop", pid: p.id, kind: "wf", attr: ATTRS.indexOf(WUNDEN[last.a].a), delta: 1, label: WUNDEN[last.a].f[last.f - 1] }, { destination: "ALL" }).catch(() => {});
+            renderTab();
+          });
+          row.appendChild(x);
+        });
+        box.appendChild(row);
+      }
+    }
     if (a < 0) { box.appendChild(mk("p", "hint", "Zufall: Der erste Würfel bestimmt das Attribut (1 Kraft, 2 Geschick, 3 Präsenz, 4 Intellekt, 5 Sinne, 6 Wille), der zweite die Folge. Oder wähle oben ein Attribut.")); return; }
     WUNDEN[a].f.forEach((n, i) => {
       const r = mk("div", "trow" + (last && last.a === a && last.f === i + 1 ? " hit" : ""));
