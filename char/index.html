@@ -304,7 +304,6 @@ function viewFert(box, c) {
     if (edit) li.appendChild(selectIn([[0, "-"], ...ROM], c.k[i], (v) => setC((x) => { x.k[i] = +v; }))); else li.appendChild(h("b", "", c.k[i] ? ROMAN[c.k[i]] : "-"));
     box.appendChild(li);
   });
-  listSec(box, "Domänen", c, "dom", "r", { max: "dom" });
   box.appendChild(h("h2", "", "Schicksal"));
   if (edit) {
     box.appendChild(field("Weg", textIn(c.weg, 40, (v) => setC((x) => { x.weg = v; }))));
