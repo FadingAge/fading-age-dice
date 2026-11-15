@@ -17,6 +17,21 @@
       const readSelf = () => { const l = readJ(SELF, []); return Array.isArray(l) ? l : []; };
       const badge = () => { try { const n = readSelf().filter((e) => !e.seen).length; OBR.action.setBadgeText(n ? String(n) : undefined).catch(() => {}); } catch { /* ignorieren */ } };
 
+      // Hinweis in Dunkelrot mit weißer Schrift (eigenes kleines Fenster oben mittig). Klappt das nicht, bleibt der normale Hinweis von Owlbear.
+      const TID = "de.fadingage.sl.toast", BASE = new URL("./", location.href).href;
+      const toast = async (t) => {
+        try {
+          const w = await OBR.viewport.getWidth();
+          await OBR.popover.close(TID).catch(() => {});
+          await OBR.popover.open({
+            id: TID, url: `${BASE}toast.html?m=${encodeURIComponent(JSON.stringify({ h: "Eigenänderung", t, s: 9000 }))}`,
+            width: 340, height: 90, anchorReference: "POSITION", anchorPosition: { left: w / 2, top: 64 },
+            anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
+            hidePaper: true, disableClickAway: true, marginThreshold: 0,
+          });
+        } catch { OBR.notification.show(t, "ERROR").catch(() => {}); }
+      };
+
       OBR.onReady(async () => {
         const gm = (await OBR.player.getRole()) === "GM";
         if (gm) {
@@ -32,7 +47,7 @@
             writeJ(SELF, list.slice(-40));
             badge();
             const cn = items[0].cn && items.every((i) => i.cn === items[0].cn) ? ` (${items[0].cn})` : "";
-            OBR.notification.show(`${name}${cn} ändert selbst: ${items.map((i) => i.text).join("; ")}`.slice(0, 230), "WARNING").catch(() => {});
+            toast(`${name}${cn} ändert selbst: ${items.map((i) => i.text).join("; ")}`.slice(0, 230));
           });
         }
         // Charaktere: Spieler schicken ihren Charakter automatisch, die SL fragt beim Start und bei neuen Spielern nach

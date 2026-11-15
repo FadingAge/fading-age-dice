@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fading Age Hinweis</title>
+<style>
+  html { background: transparent; color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 10px 38px 11px 14px; box-sizing: border-box; position: relative; background: #4a0a10; color: #fff;
+    border: 2px solid #8c1d26; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, .55); font-size: 14px; line-height: 1.35; }
+  .h { margin: 0 0 3px; font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: #ffb4b4; }
+  .t { margin: 0; color: #fff; overflow-wrap: anywhere; }
+  #x { position: absolute; top: 7px; right: 7px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .16); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+  #x:hover { background: rgba(255, 255, 255, .3); }
+</style>
+</head>
+<body>
+<button id="x" type="button" aria-label="Schließen">×</button>
+<p class="h" id="h">Eigenänderung</p>
+<p class="t" id="t"></p>
+<script type="module">
+  import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+  // Hinweis der SL-Extension: dunkelrot mit weißer Schrift, schließt sich nach einigen Sekunden von selbst
+  const ID = "de.fadingage.sl.toast";
+  let m = {};
+  try { m = JSON.parse(new URLSearchParams(location.search).get("m") || "{}") || {}; } catch { m = {}; }
+  const clean = (x, n) => String(x == null ? "" : x).replace(/[\u0000-\u001f<>]/g, "").slice(0, n);
+  document.getElementById("h").textContent = clean(m.h, 40) || "Eigenänderung";
+  document.getElementById("t").textContent = clean(m.t, 260);
+  OBR.onReady(() => {
+    const close = () => OBR.popover.close(ID).catch(() => {});
+    document.getElementById("x").addEventListener("click", close);
+    const fit = () => OBR.popover.setHeight(ID, Math.ceil(document.body.getBoundingClientRect().height) + 2).catch(() => {});
+    fit(); setTimeout(fit, 300);
+    setTimeout(close, Math.min(30000, Math.max(3000, parseInt(m.s) || 9000)));
+  });
+</script>
+</body>
+</html>
