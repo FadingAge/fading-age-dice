@@ -124,6 +124,15 @@
   .mun { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
   .mun button { width: 24px; height: 24px; padding: 0; border: 2px solid var(--line2); border-radius: 5px; background: transparent; }
   .mun button.on { background: var(--mut2); border-color: var(--mut2); }
+  .arm { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+  .arl { display: flex; flex-direction: column; gap: 6px; }
+  .rr { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--mut); }
+  .rr b { min-width: 44px; padding: 4px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); text-align: center; font-size: 17px; color: var(--txt); }
+  .rr select { width: 70px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--txt); font-size: 14px; }
+  .arr .ml { margin-top: 0; }
+  .clrrow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .clrrow .q { flex: 1; font-size: 13px; color: var(--txt); }
+  .clrrow .btn.yes { border-color: #b83a3a; background: #7a1f24; color: #fff; }
   .pre { width: 100%; box-sizing: border-box; height: 34px; margin: 6px 0 4px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--bg); color: var(--mut); font-size: 13px; }
   .f3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .bkrow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
@@ -154,7 +163,7 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignorie
 
 let S = FA.readStore(), raw = lsGet(FA.STORE);
 let tab = ["bogen", "fert", "gear", "notiz", "verlauf"].includes(lsGet("fa-char-tab")) ? lsGet("fa-char-tab") : "bogen";
-let edit = false, pending = null, delArm = false, importOpen = false, note = "";
+let edit = false, pending = null, delArm = false, clrArm = false, importOpen = false, note = "";
 const bk = { msg: "", text: "", pending: null, file: null }; // Sicherung: Meldung, Textfeld, gelesene Charaktere zum Bestätigen
 // Beim Bearbeiten merken wir uns die Attribute von vorher. Beim Beenden geht eine Meldung an die SL, falls sich etwas geändert hat.
 // "fresh" = der Charakter wurde gerade erst angelegt, dann ist das die normale Erstellung und es gibt keine Meldung.
@@ -194,7 +203,7 @@ function paintTop() {
   sel.value = S.ci; sel.disabled = !S.chars.length;
   $("new").disabled = S.chars.length >= FA.MAX.chars; $("edit").disabled = !cur(); $("edit").classList.toggle("on", edit && !!cur());
 }
-$("who").addEventListener("change", () => { const id = $("who").value; pending = null; delArm = false; flushEdit(); mut((s) => { s.ci = id; }); if (edit) startEdit(false); });
+$("who").addEventListener("change", () => { const id = $("who").value; pending = null; delArm = false; clrArm = false; flushEdit(); mut((s) => { s.ci = id; }); if (edit) startEdit(false); });
 $("new").addEventListener("click", () => { flushEdit(); mut((s) => { const c = FA.newChar("Neuer Charakter"); s.chars.push(c); s.ci = c.id; }); edit = true; startEdit(true); tab = "bogen"; render(); });
 $("edit").addEventListener("click", () => { edit = !edit; if (edit) startEdit(false); else flushEdit(); render(); });
 
@@ -204,7 +213,7 @@ function paintTabs() {
   [["bogen", "Bogen"], ["fert", "Fertigkeiten"], ["gear", "Ausrüstung"], ["notiz", "Notizen"], ["verlauf", "Verlauf"]].forEach(([k, n]) => {
     const b = h("button", k === tab ? "on" : "", n); b.type = "button";
     if (k === "bogen" && np) b.appendChild(h("i", "dot"));
-    b.addEventListener("click", () => { tab = k; lsSet("fa-char-tab", k); render(); });
+    b.addEventListener("click", () => { tab = k; clrArm = false; delArm = false; lsSet("fa-char-tab", k); render(); });
     t.appendChild(b);
   });
 }
@@ -381,25 +390,30 @@ function viewGear(box, c) {
   });
   if (edit && c.w.length < FA.MAX.w) { const a = h("button", "add", "+ Waffe"); a.type = "button"; a.addEventListener("click", () => setC((x) => { x.w.push(FA.cleanWeapon({ n: "", at: [0], art: [1], hm: 3, hz: 3 })); })); box.appendChild(a); }
 
-  // Rüstung
+  // Rüstung: links die drei Resistenzen untereinander, rechts die Haltbarkeit
   box.appendChild(h("h2", "", "Rüstung"));
-  const ar = c.ar, ac = h("div", "gc");
-  ac.appendChild(h("div", "gn", ar.n || (ar.r.some((v) => v > 0) ? "(ohne Name)" : "Keine Rüstung")));
+  const ar = c.ar, ac = h("div", "gc"), hasAr = ar.r.some((v) => v > 0);
+  ac.appendChild(h("div", "gn", ar.n || (hasAr ? "(ohne Name)" : "Keine Rüstung")));
   if (edit) {
     ac.appendChild(preset(FA.RUESTUNGEN, (k) => setC((x) => { x.ar = FA.armorPreset(k); })));
     ac.appendChild(field("Name", textIn(ar.n, 40, (v) => setC((x) => { x.ar.n = v; }))));
-    const rg = h("div", "f3"); FA.DMG.forEach((n, k) => rg.appendChild(field(n, selectIn(nums(0, 12), ar.r[k], (v) => setC((x) => { x.ar.r[k] = +v; })))));
-    ac.appendChild(rg);
-    ac.appendChild(field("Eigenschaften", textIn(ar.e, 80, (v) => setC((x) => { x.ar.e = v; }))));
-    ac.appendChild(field("Höchste Haltbarkeit", selectIn(nums(0, 8), ar.hm, (v) => setC((x) => { x.ar.hm = +v; x.ar.hz = Math.min(x.ar.hz, +v); }))));
-  } else if (ar.r.some((v) => v > 0)) {
-    const rn = h("div", "rn"); FA.DMG.forEach((n, k) => { const d = h("div"); d.appendChild(h("small", "", n)); d.appendChild(h("b", "", String(ar.r[k]))); rn.appendChild(d); }); ac.appendChild(rn);
-    if (ar.e) ac.appendChild(h("div", "ge", ar.e));
-  } else ac.appendChild(h("div", "gm", `Ohne Rüstung gilt die Grundresistenz ${FA.BASIS_RES}.`));
-  if (ar.r.some((v) => v > 0)) {
-    ac.appendChild(durRow("Haltbarkeit", ar.hz, ar.hm, (v) => setC((x) => { x.ar.hz = v; })));
-    if (ar.hm && !ar.hz) ac.appendChild(h("div", "gm", "Kein Schutz mehr: es zählt die Grundresistenz " + FA.BASIS_RES + "."));
   }
+  if (edit || hasAr) {
+    const grid = h("div", "arm"), left = h("div", "arl"), right = h("div", "arr");
+    FA.DMG.forEach((n, k) => {
+      const row = h("div", "rr"); row.appendChild(h("span", "", n));
+      if (edit) row.appendChild(selectIn(nums(0, 12), ar.r[k], (v) => setC((x) => { x.ar.r[k] = +v; })));
+      else row.appendChild(h("b", "", String(ar.r[k])));
+      left.appendChild(row);
+    });
+    if (edit) right.appendChild(field("Höchste Haltbarkeit", selectIn(nums(0, 8), ar.hm, (v) => setC((x) => { x.ar.hm = +v; x.ar.hz = Math.min(x.ar.hz, +v); }))));
+    right.appendChild(h("span", "ml", "Haltbarkeit"));
+    if (ar.hm) right.appendChild(dpips(ar.hz, ar.hm, (v) => setC((x) => { x.ar.hz = v; }))); else right.appendChild(h("div", "gm", "keine"));
+    grid.appendChild(left); grid.appendChild(right); ac.appendChild(grid);
+    if (edit) ac.appendChild(field("Eigenschaften", textIn(ar.e, 80, (v) => setC((x) => { x.ar.e = v; }))));
+    else if (ar.e) ac.appendChild(h("div", "ge", ar.e));
+    if (hasAr && ar.hm && !ar.hz) ac.appendChild(h("div", "gm", "Kein Schutz mehr: es zählt die Grundresistenz " + FA.BASIS_RES + "."));
+  } else ac.appendChild(h("div", "gm", `Ohne Rüstung gilt die Grundresistenz ${FA.BASIS_RES}.`));
   box.appendChild(ac);
 
   // Schild
@@ -424,20 +438,22 @@ function viewGear(box, c) {
   if (hasSh) sc2.appendChild(durRow("Haltbarkeit", sh.hz, sh.hm, (v) => setC((x) => { x.sh.hz = v; })));
   box.appendChild(sc2);
 
-  // Munition
+  // Munition: bis zu 10 Schuss eintragen, jeder Schuss nimmt das rechte gefüllte Kästchen weg
   const ammo = c.w.some((w) => /Nachladen/.test(w.e));
-  if (edit || c.mun.n || c.mun.u || ammo) {
+  if (!edit && !c.mun.n && !c.mun.a && !ammo) { // nichts im Behälter und keine Fernkampfwaffe: nur ein Knopf zum Auffüllen
+    const a = h("button", "add", "+ Munition (Behälter mit 10 Schuss)"); a.type = "button"; a.addEventListener("click", () => setC((x) => { x.mun.a = 10; })); box.appendChild(a);
+  } else {
     box.appendChild(h("h2", "", "Munition"));
     const mc = h("div", "gc");
     if (edit) mc.appendChild(field("Behälter (zum Beispiel Köcher)", textIn(c.mun.n, 30, (v) => setC((x) => { x.mun.n = v; }))));
     else mc.appendChild(h("div", "gn", c.mun.n || "Munition"));
-    mc.appendChild(h("div", "gm", `${10 - c.mun.u} von 10 Schuss übrig. Markiert ist jeder abgegebene Schuss.`));
+    mc.appendChild(h("div", "gm", c.mun.a ? `${c.mun.a} von 10 Schuss übrig. Ein Kästchen antippen setzt die Anzahl.` : "Keine Schuss mehr. Ein Kästchen antippen setzt die Anzahl (bis 10)."));
     const g = h("div", "mun");
-    for (let i = 1; i <= 10; i++) { const b = h("button", i <= c.mun.u ? "on" : ""); b.type = "button"; b.title = `Schuss ${i}`; b.addEventListener("click", () => setC((x) => { x.mun.u = x.mun.u === i ? i - 1 : i; })); g.appendChild(b); }
+    for (let i = 1; i <= 10; i++) { const b = h("button", i <= c.mun.a ? "on" : ""); b.type = "button"; b.title = `${i} Schuss`; b.addEventListener("click", () => setC((x) => { x.mun.a = x.mun.a === i ? i - 1 : i; })); g.appendChild(b); }
     mc.appendChild(g);
-    const row = h("div", "bkrow"), sh3 = h("button", "btn", "Schuss abgeben"), fill = h("button", "btn", "Behälter auffüllen");
-    sh3.type = fill.type = "button"; sh3.disabled = c.mun.u >= 10; fill.disabled = c.mun.u === 0;
-    sh3.addEventListener("click", () => setC((x) => { x.mun.u = Math.min(10, x.mun.u + 1); })); fill.addEventListener("click", () => setC((x) => { x.mun.u = 0; }));
+    const row = h("div", "bkrow"), sh3 = h("button", "btn", "Schuss abgeben"), fill = h("button", "btn", "Auf 10 auffüllen");
+    sh3.type = fill.type = "button"; sh3.disabled = c.mun.a <= 0; fill.disabled = c.mun.a >= 10;
+    sh3.addEventListener("click", () => setC((x) => { x.mun.a = Math.max(0, x.mun.a - 1); })); fill.addEventListener("click", () => setC((x) => { x.mun.a = 10; }));
     row.appendChild(sh3); row.appendChild(fill); mc.appendChild(row); box.appendChild(mc);
   }
 }
@@ -599,6 +615,18 @@ function viewVerlauf(box, c) {
     if (i === 0) { const u = h("button", "btn", "Rückgängig"); u.addEventListener("click", () => mut((s) => FA.undoLast(s, c.id))); r.appendChild(u); }
     box.appendChild(r);
   });
+  if (mine.length) { // Verlauf leeren: erst fragen, dann löschen
+    const cr = h("div", "clrrow");
+    if (!clrArm) { const b = h("button", "btn", "Verlauf löschen"); b.type = "button"; b.addEventListener("click", () => { clrArm = true; render(); }); cr.appendChild(b); }
+    else {
+      cr.appendChild(h("span", "q", "Verlauf wirklich löschen?"));
+      const y = h("button", "btn yes", "Ja"), n = h("button", "btn", "Nein"); y.type = n.type = "button";
+      y.addEventListener("click", () => { clrArm = false; mut((st) => { st.log = st.log.filter((e) => e.cid !== c.id); }); });
+      n.addEventListener("click", () => { clrArm = false; render(); });
+      cr.appendChild(y); cr.appendChild(n);
+    }
+    box.appendChild(cr);
+  }
   box.appendChild(h("h2", "", "Daten"));
   const old = legacyChars();
   if (old.length) { const b = h("button", "big alt", `Aus der Würfel-Extension übernehmen (${old.length})`); b.addEventListener("click", importLegacy); box.appendChild(b); }
