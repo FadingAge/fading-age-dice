@@ -6,7 +6,7 @@ export const ROMAN = ["", "I", "II", "III"];
 export const ART = { w: "Weltlicher", v: "Verdammter", a: "Abtrünniger" };
 export const MAX = { f: 24, m: 12, x: 12, chars: 12, notes: 40 };
 export const CH = "de.fadingage.chars"; // Kanal: Spieler teilen ihren Charakter mit der SL
-export const KEYS = { pchars: "fa-sl-pchars", local: "fa-sl-lchars", set: "fa-sl-set", tab: "fa-sl-tab", notes: "fa-sl-notes", sub: "fa-sl-sub" };
+export const KEYS = { pchars: "fa-sl-pchars", local: "fa-sl-lchars", set: "fa-sl-set", tab: "fa-sl-tab", notes: "fa-sl-notes", sub: "fa-sl-sub", selfchg: "fa-sl-selfchg" };
 
 // Wirksamer Attributswert: Grundwert minus Wundfolgen (Glück bleibt)
 export const effA = (c, i) => Math.max(0, c.a[i] - (i < 6 && c.wf ? c.wf[i] || 0 : 0));

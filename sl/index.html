@@ -159,11 +159,26 @@
   .chev { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(-45deg); transition: transform .15s; }
   details[open] > summary > .chev { transform: rotate(45deg); }
   .pcard { margin-bottom: 8px; }
+  .scard { margin-bottom: 8px; } .scard.new { border-color: #d9524a; }
+  .scard.new > summary { color: #ff8f86; }
+  .srow { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; align-items: baseline; }
+  .srow time { flex: none; width: 38px; color: var(--mut2); font-size: 11px; }
+  .srow span { flex: 1; min-width: 0; } .srow em { font-style: normal; color: var(--mut); }
+  .srow.un span { font-weight: 800; color: var(--txt); }
+  .sbar { display: flex; gap: 6px; margin-top: 8px; }
   .ac.hurt { border-color: #d9524a; background: rgba(217,82,74,.16); } .ac.hurt b { color: #ff8f86; }
-  .ztr { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .zt { display: flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; }
-  .zt i { font-style: normal; color: var(--mut); } .zt b { min-width: 28px; text-align: center; color: var(--txt); }
+  .ztr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .zt { min-width: 0; padding: 5px 6px 6px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; }
+  .zt .zh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 6px; margin-bottom: 4px; min-height: 17px; }
+  .zt .zc { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .zt i { font-style: normal; color: var(--mut); } .zt b { min-width: 34px; text-align: center; color: var(--txt); }
   .zt em { font-style: normal; font-weight: 800; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--acc); color: var(--onacc); }
+  .pcard .achips.pa { display: grid; grid-template-columns: repeat(3, minmax(0, 112px)); justify-content: center; }
+  .pcard .achips.pa button { flex: none; }
+  .ncard > summary .rst { margin-left: auto; flex: none; width: 30px; height: 26px; padding: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--mut); cursor: pointer; }
+  .ncard > summary .rst:hover:not(:disabled) { border-color: var(--line2); color: var(--txt); }
+  .ncard > summary .rst:disabled { opacity: .4; cursor: default; }
+  .ncard > summary .rst svg { width: 15px; height: 15px; }
   .zt button { width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; cursor: pointer; font-size: 14px; line-height: 1; }
   .zt button:hover { border-color: var(--line2); }
   .zt.fear i { color: #b79cf0; } .zt.exh i { color: #e6a35c; }
@@ -364,7 +379,7 @@
   });
   window.addEventListener("storage", (e) => {
     if (e.key === GOT || e.key === ROUND || e.key === null) { load(); render(); }
-    if (e.key === KEYS.pchars || e.key === KEYS.local || e.key === null) renderChars();
+    if (e.key === KEYS.pchars || e.key === KEYS.local || e.key === KEYS.selfchg || e.key === null) renderChars();
     if (e.key === "fa-dice3" || e.key === null) applyTheme();
   });
 
@@ -403,15 +418,15 @@
     }
     if (c.tr && pid) { // Zustand des Spielers: Furcht und Erschöpfung lassen sich hier anpassen
       const z = mk("div", "ztr");
-      [["fear", "Furcht"], ["exh", "Erschöpfung"]].forEach(([k, n]) => {
-        const v = c.tr[k], w = mk("div", "zt " + k), m = mk("button", "", "-"), p = mk("button", "", "+");
+      [["exh", "Erschöpfung"], ["fear", "Furcht"]].forEach(([k, n]) => { // eine Zeile: links Erschöpfung, rechts Furcht
+        const v = c.tr[k], w = mk("div", "zt " + k), hd = mk("div", "zh"), ct = mk("div", "zc"), m = mk("button", "", "-"), p = mk("button", "", "+");
         m.title = n + " senken"; p.title = n + " erhöhen"; m.addEventListener("click", () => cond(pid, k, -1)); p.addEventListener("click", () => cond(pid, k, 1));
-        w.appendChild(mk("i", "", n)); w.appendChild(m); w.appendChild(mk("b", "", v + "/6")); w.appendChild(p);
-        if (level(v)) w.appendChild(mk("em", "", "Stufe " + ROMAN[level(v)]));
-        z.appendChild(w);
+        hd.appendChild(mk("i", "", n)); if (level(v)) hd.appendChild(mk("em", "", "Stufe " + ROMAN[level(v)]));
+        ct.appendChild(m); ct.appendChild(mk("b", "", v + "/6")); ct.appendChild(p);
+        w.appendChild(hd); w.appendChild(ct); z.appendChild(w);
       });
       el.appendChild(z);
-      const info = [{ n: "Wunden", b: c.tr.wounds + "/7" }]; const wt = c.wf.reduce((a, v) => a + v, 0);
+      const info = [{ n: "Wunden", b: c.tr.wounds + "/7" }]; if (c.tr.lvl) info.unshift({ n: "Stufe", b: String(c.tr.lvl) }); const wt = c.wf.reduce((a, v) => a + v, 0);
       if (wt) info.push({ n: "Wundfolgen", b: String(wt) });
       if (c.t !== "w") info.push({ n: "Korruption", b: String(c.tr.corr) });
       if (c.t === "v") info.push({ n: "Brandmal", b: String(c.tr.brand) });
@@ -439,13 +454,35 @@
     if (!box.children.length) box.appendChild(mk("p", "hint", "Noch keine Charaktere. Sobald Spieler einen anlegen, erscheinen sie hier."));
     $("cadd").disabled = loc.length >= MAX.chars;
     box.prepend(probePanel());
+    const sp = selfPanel(); if (sp) box.prepend(sp);
+  }
+
+  // ---------- Eigenänderungen der Spieler ----------
+  // Ändert ein Spieler Werte selbst (ohne SL, Würfel oder Charaktererstellung), meldet das seine Charakter-Extension. Der Hintergrund blendet einen Hinweis ein und merkt sich die Meldung.
+  let selfOpen = null;
+  const hm = (t) => new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  function selfPanel() {
+    const raw = readJ(KEYS.selfchg, []), list = Array.isArray(raw) ? raw : []; if (!list.length) return null;
+    const unseen = list.filter((e) => !e.seen).length;
+    const det = mk("details", "ncard scard" + (unseen ? " new" : "")), sm = mk("summary");
+    sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "Eigenänderungen der Spieler" + (unseen ? ` (${unseen} neu)` : "")));
+    det.appendChild(sm); det.open = selfOpen === null ? unseen > 0 : selfOpen; det.addEventListener("toggle", () => { selfOpen = det.open; });
+    const b = mk("div", "ib");
+    list.slice().reverse().slice(0, 15).forEach((e) => {
+      const r = mk("div", "srow" + (e.seen ? "" : " un")); r.appendChild(mk("time", "", hm(e.t)));
+      const sp = mk("span", "", ""); sp.appendChild(mk("b", "", ctxt(e.name) + (e.cn ? ` (${ctxt(e.cn, 40)})` : "") + ": ")); sp.appendChild(document.createTextNode(ctxt(e.text, 120))); r.appendChild(sp); b.appendChild(r);
+    });
+    const bar = mk("div", "sbar"), ok = mk("button", "mini", "Gelesen"), clr = mk("button", "mini", "Liste leeren");
+    ok.addEventListener("click", () => { writeJ(KEYS.selfchg, list.map((e) => ({ ...e, seen: true }))); try { OBR.action.setBadgeText(undefined).catch(() => {}); } catch { /* ignorieren */ } renderChars(); });
+    clr.addEventListener("click", () => { writeJ(KEYS.selfchg, []); try { OBR.action.setBadgeText(undefined).catch(() => {}); } catch { /* ignorieren */ } renderChars(); });
+    bar.append(ok, clr); b.appendChild(bar); det.appendChild(b); return det;
   }
 
   // ---------- SL-Probe: Wer ist betroffen? ----------
   // Pool aus W6 (5-6 = 1 Erfolg), MW6 (5-6 = 2 Erfolge) und Fertigkeit (feste Erfolge). Die Erfolge werden gegen das Attribut jedes gewählten Charakters gehalten:
   // Erfolge unter dem Attribut = nicht betroffen, Attribut oder Attribut +1 = betroffen, Attribut +2 oder mehr = kritisch betroffen.
   const PKEY = "fa-sl-probe";
-  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, 0, 6), nw: o.nw === undefined ? 3 : clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
+  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, 0, 5), nw: o.nw === undefined ? 3 : clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
   const saveProbe = () => writeJ(PKEY, probe);
   let psel = null, proll = null; // psel: Auswahl (null = alle aktiven Spieler), proll: letzter Wurf
   function targets() {
@@ -462,12 +499,18 @@
     s.append(m, v, p); w.append(mk("div", "pl", label), s); return w;
   }
   function probePanel() {
-    const det = mk("details", "ncard pcard"), sm = mk("summary"); sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "SL-Probe: Wer ist betroffen?")); det.appendChild(sm);
+    const det = mk("details", "ncard pcard"), sm = mk("summary"); sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "SL-Probe: Wer ist betroffen?"));
+    // Zurücksetzen wie beim Spieler: Würfel und Ergebnis der Probe leeren (Attribut und Auswahl der Spieler bleiben)
+    const rs = mk("button", "rst"); rs.type = "button"; rs.title = "Probe zurücksetzen"; rs.setAttribute("aria-label", "Probe zurücksetzen");
+    rs.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+    rs.disabled = !proll && !probe.nw && !probe.nm && !probe.sk;
+    rs.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); if (rolling) return; proll = null; probe.nw = 0; probe.nm = 0; probe.sk = 0; saveProbe(); renderChars(); });
+    sm.appendChild(rs); det.appendChild(sm);
     det.open = probe.open; det.addEventListener("toggle", () => { probe.open = det.open; saveProbe(); });
     const b = mk("div", "ib");
     b.appendChild(mk("div", "lab", "Attribut"));
-    const ac = mk("div", "achips");
-    ATTRS.forEach((n, i) => { const x = mk("button", i === probe.a ? "on" : "", n); x.addEventListener("click", () => { probe.a = i; saveProbe(); renderChars(); }); ac.appendChild(x); });
+    const ac = mk("div", "achips pa"); // ohne Glück, das lässt sich nicht proben
+    ATTRS.slice(0, 6).forEach((n, i) => { const x = mk("button", i === probe.a ? "on" : "", n); x.addEventListener("click", () => { probe.a = i; saveProbe(); renderChars(); }); ac.appendChild(x); });
     b.appendChild(ac);
     const pr = mk("div", "prow2");
     pr.appendChild(stepper("W6", probe.nw, 0, 20, (v) => { probe.nw = v; saveProbe(); renderChars(); }));

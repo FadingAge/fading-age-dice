@@ -1,5 +1,6 @@
 <!doctype html>
 <html>
+  <head><meta charset="utf-8"></head>
   <body>
     <script type="module">
       import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
@@ -11,8 +12,29 @@
       const read = () => { try { const o = JSON.parse(localStorage.getItem(GOT) || "null"); return o && typeof o === "object" && o.p ? o : { id: "", p: {} }; } catch { return { id: "", p: {} }; } };
       const write = (o) => { try { localStorage.setItem(GOT, JSON.stringify(o)); } catch { /* ignorieren */ } };
 
+      // Eigenänderungen der Spieler (ohne SL-Freigabe): als Hinweis einblenden und in einer Liste merken, die das SL-Panel anzeigt
+      const SELF = KEYS.selfchg;
+      const readSelf = () => { const l = readJ(SELF, []); return Array.isArray(l) ? l : []; };
+      const badge = () => { try { const n = readSelf().filter((e) => !e.seen).length; OBR.action.setBadgeText(n ? String(n) : undefined).catch(() => {}); } catch { /* ignorieren */ } };
+
       OBR.onReady(async () => {
         const gm = (await OBR.player.getRole()) === "GM";
+        if (gm) {
+          badge();
+          window.addEventListener("storage", (e) => { if (e.key === SELF || e.key === null) badge(); });
+          OBR.broadcast.onMessage(CH, (event) => {
+            const m = event.data; if (!m || typeof m !== "object" || m.type !== "selfchg" || !Array.isArray(m.items)) return;
+            const pid = String(m.pid || "").slice(0, 64), name = txt(m.name) || "Spieler", now = Date.now();
+            const items = m.items.slice(0, 10).map((i) => ({ cn: txt(i && i.cn, 40), text: txt(i && i.text, 120) })).filter((i) => i.text);
+            if (!items.length) return;
+            const list = readSelf();
+            items.forEach((i, k) => list.push({ id: now + "-" + k + "-" + pid.slice(0, 6), t: now, pid, name, cn: i.cn, text: i.text, seen: false }));
+            writeJ(SELF, list.slice(-40));
+            badge();
+            const cn = items[0].cn && items.every((i) => i.cn === items[0].cn) ? ` (${items[0].cn})` : "";
+            OBR.notification.show(`${name}${cn} ändert selbst: ${items.map((i) => i.text).join("; ")}`.slice(0, 230), "WARNING").catch(() => {});
+          });
+        }
         // Charaktere: Spieler schicken ihren Charakter automatisch, die SL fragt beim Start und bei neuen Spielern nach
         OBR.broadcast.onMessage(CH, (event) => {
           const m = event.data; if (!gm || !m || typeof m !== "object" || m.type !== "char") return;
