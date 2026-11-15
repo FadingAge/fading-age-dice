@@ -71,6 +71,11 @@ export function cleanArmor(e) {
   e = obj(e); const hm = clamp(e.hm, 0, 8), r = arr(e.r, 3);
   return { n: txt(e.n, 40), r: [0, 1, 2].map((i) => clamp(r[i], 0, 12)), hm, hz: clamp(e.hz, 0, hm), e: txt(e.e, 80) };
 }
+// Munition: a = Schuss, die noch im Behälter sind (0 bis 10). Ältere Stände zählten abgegebene Schuss (u).
+export function cleanMun(e) {
+  e = obj(e);
+  return { n: txt(e.n, 30), a: clamp(e.a != null ? e.a : (e.u > 0 ? 10 - e.u : 0), 0, 10) };
+}
 export function cleanShield(e) {
   e = obj(e); const hm = clamp(e.hm, 0, 4);
   return { n: txt(e.n, 40), v: clamp(e.v, 0, 12), r: clamp(e.r, 0, 6), hm, hz: clamp(e.hz, 0, hm), act: !!e.act, e: txt(e.e, 60) };
@@ -109,7 +114,7 @@ export function cleanChar(c) {
     tr: { fear: clamp(tr.fear, 0, TR_MAX.fear), exh: clamp(tr.exh, 0, TR_MAX.exh), corr: clamp(tr.corr, 0, TR_MAX.corr),
       brand: clamp(tr.brand || 1, 1, TR_MAX.brand), wounds: clamp(tr.wounds, 0, TR_MAX.wounds),
       lvl: clamp(tr.lvl || 1, 1, 20), xp: clamp(tr.xp, 0, 9999), kxp: clamp(tr.kxp, 0, 9999) },
-    w: arr(c.w, MAX.w).map(cleanWeapon), ar: cleanArmor(c.ar), sh: cleanShield(c.sh), mun: { n: txt(obj(c.mun).n, 30), u: clamp(obj(c.mun).u, 0, 10) }, rb: clamp(c.rb, 0, 6),
+    w: arr(c.w, MAX.w).map(cleanWeapon), ar: cleanArmor(c.ar), sh: cleanShield(c.sh), mun: cleanMun(c.mun), rb: clamp(c.rb, 0, 6),
     dead: txt(c.dead, 80),
     notes: String(c.notes == null ? "" : c.notes).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f<>]/g, "").slice(0, MAX.notes),
   };

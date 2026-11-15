@@ -203,7 +203,9 @@
   .cw .t1 b { font-size: 15px; color: var(--txt); overflow-wrap: anywhere; }
   .cw .t1 span { font-size: 12px; color: var(--mut); }
   .cw .t2 { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 4px; font-size: 12px; color: var(--mut); }
-  .cw .ab { padding: 1px 7px; border-radius: 6px; background: var(--acc); color: var(--onacc); font-size: 12px; font-weight: 800; }
+  .cw .ab { padding: 2px 9px; border: 2px solid var(--acc); border-radius: 6px; background: transparent; color: var(--acc); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .cw .ab.on { background: var(--acc); color: var(--onacc); }
+  .cw .ab:disabled { opacity: .35; cursor: default; }
   .cw .t3 { margin-top: 3px; font-size: 12px; color: var(--txt); opacity: .85; overflow-wrap: anywhere; }
   .cw .hp { display: inline-flex; gap: 3px; margin-left: auto; }
   .cw .hp i { width: 10px; height: 10px; border: 2px solid var(--acc2); border-radius: 3px; box-sizing: border-box; }
@@ -1738,7 +1740,7 @@ import * as FA from "./fa-core.js";
         t1.appendChild(mk("b", "", w.n || "(ohne Name)")); t1.appendChild(mk("span", "", [w.art.join(" / "), w.rw ? "RW " + w.rw : "", w.h === 2 ? "zweihändig" : ""].filter(Boolean).join(" · ")));
         r.appendChild(t1);
         const t2 = mk("div", "t2"); t2.appendChild(mk("span", "", "Angriff mit"));
-        w.at.forEach((i) => t2.appendChild(mk("span", "ab", FA.AT_SHORT[i])));
+        w.at.forEach((i) => { const ab = mk("button", "ab" + (picked.a === i && S.nw === ch.a[i] ? " on" : ""), FA.AT_SHORT[i]); ab.type = "button"; ab.dataset.i = i; ab.disabled = !!(ch.wf && ch.wf[i]) && ch.a[i] < 1; ab.title = ATTRS[i] + " für den Angriff wählen"; t2.appendChild(ab); });
         if (w.hm) { const hp = mk("span", "hp"); hp.title = `Haltbarkeit ${w.hz} von ${w.hm}`; for (let k = 1; k <= w.hm; k++) hp.appendChild(mk("i", k <= w.hz ? "on" : "")); t2.appendChild(hp); }
         r.appendChild(t2);
         if (w.e) r.appendChild(mk("div", "t3", w.e));
@@ -1747,6 +1749,7 @@ import * as FA from "./fa-core.js";
       if (!ch.gear.w.length) lw.appendChild(mk("div", "t3", "Keine Waffe in der Hand. Im Charakterbogen unter Ausrüstung \"In der Hand\" wählen."));
       if (ch.gear.sh) { const r = mk("div", "cw sh"), t1 = mk("div", "t1"); t1.appendChild(mk("b", "", ch.gear.sh.n || "Schild")); t1.appendChild(mk("span", "", [ch.gear.sh.v ? `Schildwert ${ch.gear.sh.v}W6` : "", ch.gear.sh.r ? `Resistenz +${ch.gear.sh.r}` : ""].filter(Boolean).join(" · "))); r.appendChild(t1); lw.appendChild(r); }
     }
+    const secAttr = () => {
     // Attribute mit Erschöpfung
     const g1 = grp(); head(g1, "Attribute", statExh).classList.add("c", "s");
     const ga = mk("div", "cgrid"); g1.appendChild(ga);
@@ -1762,6 +1765,8 @@ import * as FA from "./fa-core.js";
       if (usable) c.classList.add(usable.has(i) ? "atk" : "nof");
       if (i === 3) ga.appendChild(mod); ga.appendChild(c);
     });
+    };
+    const secCols = () => {
     // Merkmale (mit Furcht) links, Fertigkeiten rechts, jeweils als Liste
     const cols = mk("div", "ccols"); box.appendChild(cols);
     const hl = mk("div", "ghead"); hl.appendChild(mk("div", "clbl", "Merkmale")); hl.appendChild(statFear);
@@ -1770,13 +1775,20 @@ import * as FA from "./fa-core.js";
     ch.m.forEach((e, i) => ll.appendChild(crow("m", i, e.n, String(e.v), picked.m === i && S.nm === e.v, false)));
     ch.f.forEach((e, i) => lr.appendChild(crow("f", i, e.n, ROMAN[e.r], picked.f === "f" + i && S.skill === e.r, false)));
     [hl, hr, ll, lr].forEach((e) => cols.appendChild(e));
+    };
+    const secKampf = () => {
     // Kampffertigkeiten
     const g3 = grp(); head(g3, "Kampffertigkeiten").classList.add("c");
     const lk = mk("div", "clist"); lk.style.marginTop = "4px"; g3.appendChild(lk);
     KAMPF.forEach((n, i) => lk.appendChild(crow("k", i, n, ch.k[i] ? ROMAN[ch.k[i]] : "-", picked.f === "k" + i && S.skill === ch.k[i], !ch.k[i])));
+    };
+    const secMakel = () => {
     // Makel
     if (ch.x.length) { const g4 = grp(); head(g4, "Makel").classList.add("c"); const lx = mk("div", "clist"); lx.style.marginTop = "4px"; g4.appendChild(lx);
       ch.x.forEach((n) => lx.appendChild(mk("span", "cchip row fix", n || "(ohne Name)"))); }
+    };
+    // Im Kampfmodus oben die Kampffertigkeiten, dann Merkmale und Fertigkeiten, Attribute ganz unten (Attribut wählt man auch über die Tags der Waffe)
+    if (curMode() === "combat") { secKampf(); secCols(); secMakel(); secAttr(); } else { secAttr(); secCols(); secKampf(); secMakel(); }
   }
   let switching = false;
   $("charhead").addEventListener("click", () => {
@@ -1807,6 +1819,12 @@ import * as FA from "./fa-core.js";
   $("charcont").addEventListener("click", (e) => {
     const mbtn = e.target.closest(".cmod button");
     if (mbtn) { if (!mbtn.disabled) { S.wmod = clamp(S.wmod + +mbtn.dataset.d, -3, 3); save(); paint(); } return; }
+    const tag = e.target.closest(".ab[data-i]");
+    if (tag) { // Attribut-Tag der Waffe: wählt das Attribut für den Angriff, nochmal Antippen nimmt es wieder heraus
+      const ch = curCh(), i = +tag.dataset.i; if (!ch || tag.disabled) return;
+      if (picked.a === i && S.nw === ch.a[i]) { S.nw = 0; picked.a = -1; } else { S.nw = ch.a[i]; picked.a = i; }
+      save(); paint(); return;
+    }
     const b = e.target.closest(".cchip"); const ch = curCh(); if (!b || b.disabled || !ch || !b.dataset.k) return;
     const k = b.dataset.k, i = +b.dataset.i;
     if (k === "a") { if (picked.a === i && S.nw === ch.a[i]) { S.nw = 0; picked.a = -1; } else { S.nw = ch.a[i]; picked.a = i; } }
