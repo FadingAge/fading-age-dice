@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"></head>
+  <body>
+    <script type="module">
+      import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+      import { CH, KEYS, cleanChar, txt, readJ, writeJ } from "./common.js";
+
+      // Sammelt im Hintergrund die Initiative-Würfe der Spieler, auch wenn das SL-Panel zu ist.
+      // Das Panel liest den Stand aus dem Speicher (gleiche Herkunft) und zeigt ihn an.
+      const INIT = "de.fadingage.init", GOT = "fa-sl-got";
+      const read = () => { try { const o = JSON.parse(localStorage.getItem(GOT) || "null"); return o && typeof o === "object" && o.p ? o : { id: "", p: {} }; } catch { return { id: "", p: {} }; } };
+      const write = (o) => { try { localStorage.setItem(GOT, JSON.stringify(o)); } catch { /* ignorieren */ } };
+
+      // Eigenänderungen der Spieler (ohne SL-Freigabe): als Hinweis einblenden und in einer Liste merken, die das SL-Panel anzeigt
+      const SELF = KEYS.selfchg;
+      const readSelf = () => { const l = readJ(SELF, []); return Array.isArray(l) ? l : []; };
+      const badge = () => { try { const n = readSelf().filter((e) => !e.seen).length; OBR.action.setBadgeText(n ? String(n) : undefined).catch(() => {}); } catch { /* ignorieren */ } };
+
+      OBR.onReady(async () => {
+        const gm = (await OBR.player.getRole()) === "GM";
+        if (gm) {
+          badge();
+          window.addEventListener("storage", (e) => { if (e.key === SELF || e.key === null) badge(); });
+          OBR.broadcast.onMessage(CH, (event) => {
+            const m = event.data; if (!m || typeof m !== "object" || m.type !== "selfchg" || !Array.isArray(m.items)) return;
+            const pid = String(m.pid || "").slice(0, 64), name = txt(m.name) || "Spieler", now = Date.now();
+            const items = m.items.slice(0, 10).map((i) => ({ cn: txt(i && i.cn, 40), text: txt(i && i.text, 120) })).filter((i) => i.text);
+            if (!items.length) return;
+            const list = readSelf();
+            items.forEach((i, k) => list.push({ id: now + "-" + k + "-" + pid.slice(0, 6), t: now, pid, name, cn: i.cn, text: i.text, seen: false }));
+            writeJ(SELF, list.slice(-40));
+            badge();
+            const cn = items[0].cn && items.every((i) => i.cn === items[0].cn) ? ` (${items[0].cn})` : "";
+            OBR.notification.show(`${name}${cn} ändert selbst: ${items.map((i) => i.text).join("; ")}`.slice(0, 230), "WARNING").catch(() => {});
+          });
+        }
+        // Charaktere: Spieler schicken ihren Charakter automatisch, die SL fragt beim Start und bei neuen Spielern nach
+        OBR.broadcast.onMessage(CH, (event) => {
+          const m = event.data; if (!gm || !m || typeof m !== "object" || m.type !== "char") return;
+          const pid = String(m.pid || "").slice(0, 64); if (!pid) return;
+          const all = readJ(KEYS.pchars, {}); all[pid] = { name: txt(m.name), c: m.c ? cleanChar(m.c) : null, t: Date.now() };
+          writeJ(KEYS.pchars, all);
+          OBR.broadcast.sendMessage(CH, { type: "charack", pid }, { destination: "ALL" }).catch(() => {});
+        });
+        if (gm) {
+          let tm = 0;
+          const ask = () => { clearTimeout(tm); tm = setTimeout(() => OBR.broadcast.sendMessage(CH, { type: "charreq" }, { destination: "ALL" }).catch(() => {}), 600); };
+          ask(); OBR.party.onChange(ask);
+        }
+        OBR.broadcast.onMessage(INIT, (event) => {
+          const m = event.data; if (!gm || !m || typeof m !== "object") return;
+          const id = String(m.id || "").slice(0, 64), pid = String(m.pid || "").slice(0, 64);
+          if (m.type === "start") { write({ id, p: {} }); return; }
+          if (m.type === "cancel") { if (read().id === id) write({ id: "", p: {} }); return; }
+          const g = read(); if (g.id !== id || !pid) return;
+          if (m.type === "ack") g.p[pid] = { ...g.p[pid], n: txt(m.name), ready: true };
+          else if (m.type === "roll") g.p[pid] = { n: txt(m.name), ready: true, v: Math.min(6, Math.max(1, parseInt(m.v) || 1)) };
+          else return;
+          write(g);
+        });
+      });
+    </script>
+  </body>
+</html>
