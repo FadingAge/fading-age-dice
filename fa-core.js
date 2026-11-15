@@ -11,7 +11,7 @@ export const ART = { w: "Weltlicher", v: "Verdammter", a: "Abtrünniger" };
 export const NATUREN = { hunger: "Hunger", eid: "Eid", vernunft: "Vernunft" };
 export const WF_ATTRS = 6; // Glück kann keine Wundfolge bekommen
 export const WF_MAX = 2; // je Attribut höchstens 2 eingetragene Wundfolgen
-export const MAX = { chars: 12, f: 24, m: 12, x: 12, dom: 8, bf: 6, zz: 12, nar: 6, cnn: 6, log: 80, q: 24, notes: 4000 };
+export const MAX = { chars: 12, f: 24, m: 12, x: 12, bf: 6, zz: 12, nar: 6, cnn: 6, log: 80, q: 24, notes: 4000 };
 export const TR_MAX = { fear: 6, exh: 6, wounds: 7, corr: 24, brand: 4 };
 
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
@@ -40,7 +40,6 @@ export function cleanChar(c) {
     f: arr(c.f, MAX.f).map((e) => rank(e, "r", 1, 3, 30)),
     m: arr(c.m, MAX.m).map((e) => rank(e, "v", 1, 3, 30)),
     x: arr(c.x, MAX.x).map((e) => txt(e, 40)),
-    dom: arr(c.dom, MAX.dom).map((e) => rank(e, "r", 1, 3, 30)),
     weg: txt(c.weg, 40), sf: txt(c.sf, 60),
     biest: txt(c.biest, 20), bf: arr(c.bf, MAX.bf).map((e) => rank(e, "g", 1, 3, 40)),
     zz: arr(c.zz, MAX.zz).map((e) => rank(e, "g", 1, 3, 40)),

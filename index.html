@@ -193,6 +193,8 @@
   .cchip.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
   .cchip.on small, .cchip.on b { color: var(--onacc); }
   .cchip:disabled { opacity: .35; cursor: default; }
+  html[data-fs="1"] .cchip.row, html[data-fs="1"] .ccols .cchip.row { font-size: 16px; min-height: 40px; } html[data-fs="1"] .cchip.row b { font-size: 17px; }
+  html[data-fs="2"] .cchip.row, html[data-fs="2"] .ccols .cchip.row { font-size: 18px; min-height: 44px; } html[data-fs="2"] .cchip.row b { font-size: 20px; }
   .cchip.fix { cursor: default; border-style: dashed; color: var(--mut); }
   .cchip.hurt { border-color: #d9524a; background: rgba(217,82,74,.16); position: relative; }
   .cchip.hurt b { color: #ff8f86; }
@@ -498,8 +500,12 @@
         <input type="range" id="vol" min="0" max="100" step="5" style="flex:1;min-width:0;accent-color:var(--acc)"></div>
     </div>
     <div id="p-char" hidden>
+      <div class="srow"><span class="name" title="Breite des Würfel-Panels">Breite</span>
+        <div class="seg" id="wid"><button data-s="0">Schmal</button><button data-s="1">Mittel</button><button data-s="2">Breit</button></div></div>
+      <div class="srow"><span class="name" title="Schriftgröße der Fertigkeiten, Merkmale und Makel">Schrift</span>
+        <div class="seg" id="fsz"><button data-s="0">Klein</button><button data-s="1">Mittel</button><button data-s="2">Groß</button></div></div>
       <div class="srow"><span class="name" title="Automatisch: Der Charakter kommt aus der Charakter-Extension, Furcht, Erschöpfung und Wundfolgen wirken von selbst. Manuell: Du gibst den Charakter hier ein, zum Beispiel wenn Du das PDF nutzt.">Quelle</span>
-        <div class="seg" id="csrc"><button data-s="auto">Automatisch</button><button data-s="manual">Manuell</button></div></div>
+        <div class="seg" id="csrc"><button data-s="auto">Auto</button><button data-s="manual">Manuell</button></div></div>
       <p class="hint" id="csrc-msg" style="margin:2px 0 10px"></p>
       <div id="ed-wrap">
       <div class="srow"><select id="ed-sel" style="flex:1;min-width:0" aria-label="Charakter wählen"></select>
@@ -615,7 +621,7 @@ import * as FA from "./fa-core.js";
     kup_bl:  { name: "Kupfer-Blau",         kind: "frame",   frame: "#dc8d63", fill: "#2a74b8", hex: "#2a74b8", pip: "#e9a57c", mat: "metal" },
   };
   const freshDefaults = () => ({ cw: "#e0b035", pw: "#1a1408", cm: "#b83a3a", pm: "#f5efe0", cf: "#5b3a8c", pf: "#f5efe0", cz: "#1f7a86", pz: "#f5efe0", dz: "none", zn: 2, un: 3, zp: false, zu: false,
-    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, src: "auto", logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
+    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, src: "auto", wide: 0, fs: 0, logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
   // Gespeicherte Daten (Browser oder Sicherung) werden immer streng geprüft und auf Standardwerte aufgesetzt
   function readSaved(s) {
     const S = freshDefaults();
@@ -648,6 +654,8 @@ import * as FA from "./fa-core.js";
     S.ci = clamp(s.ci, 0, Math.max(0, S.chars.length - 1));
     if (s.charOpen === false) S.charOpen = false;
     if (s.src === "manual") S.src = "manual";
+    if (s.wide !== undefined) S.wide = clamp(s.wide, 0, 2);
+    if (s.fs !== undefined) S.fs = clamp(s.fs, 0, 2);
     if (s.logh !== undefined) S.logh = clamp(s.logh, 90, 1200);
 
     return S;
@@ -929,7 +937,7 @@ import * as FA from "./fa-core.js";
   }
 
   const canvas = $("tray");
-  const W = canvas.clientWidth || 260, H = MINI ? 130 : 170;
+  let W = canvas.clientWidth || 260, H = MINI ? 130 : 170;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !S.lite, alpha: true });
   const pixelRatio = () => (S.lite ? 1 : window.devicePixelRatio || 1);
   renderer.setPixelRatio(pixelRatio());
@@ -939,6 +947,14 @@ import * as FA from "./fa-core.js";
   const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(3, 8, 4); scene.add(sun);
   const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 50);
   camera.position.set(0, 7.8, 3.1); camera.lookAt(0, 0, 0);
+  // Breite des Panels (Einstellung): die Ablage wächst im gleichen Seitenverhältnis mit, damit der Ausschnitt gleich bleibt
+  function fitCanvas() {
+    if (MINI) return;
+    const w = Math.round($("tw").clientWidth || 260); if (!w || Math.abs(w - W) < 2) return;
+    W = w; H = Math.round(w * 170 / 260); canvas.style.height = H + "px";
+    renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", () => fitCanvas());
   const geo = roundedCube(20, 0.15);
   // Weicher Schatten: eine einfache Scheibe unter jedem Würfel, wird mit der Höhe größer und blasser
   const shTex = (() => {
@@ -1555,7 +1571,8 @@ import * as FA from "./fa-core.js";
     $("tw").className = "bg-" + S.tray + (S.fire !== "off" && !S.lite ? " fire" : "") + (S.fire === "flicker" && !S.lite ? " flick" : "");
     document.documentElement.classList.toggle("lite", S.lite);
     document.querySelectorAll("#lte button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.lite));
-    const SEGVAL = { csrc: S.src === "manual" ? "manual" : "auto", srf: S.surf, shd: S.shadow ? "1" : "0", trs: S.tray, fir: S.fire };
+    document.documentElement.dataset.fs = S.fs;
+    const SEGVAL = { wid: String(S.wide), fsz: String(S.fs), csrc: S.src === "manual" ? "manual" : "auto", srf: S.surf, shd: S.shadow ? "1" : "0", trs: S.tray, fir: S.fire };
     for (const id in SEGVAL) document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset.s === SEGVAL[id]));
     document.querySelectorAll("#themes button").forEach((b) => b.classList.toggle("on", b.dataset.t === S.theme));
     $("btn-exh").dataset.l = S.exh; $("btn-fear").dataset.l = S.fear;
@@ -1629,6 +1646,15 @@ import * as FA from "./fa-core.js";
   bindSeg("fir", "fire", (v) => v);
   bindSeg("mnw", "mini", (v) => v);
   bindSeg("mres", "minires", (v) => v === "1");
+  const WIDTHS = [280, 340, 400];
+  async function applyWidth() {
+    if (MINI || !OBR.action || !OBR.action.setWidth) return;
+    let max = 400; try { max = (await OBR.viewport.getWidth()) - 40; } catch { /* ignorieren */ }
+    OBR.action.setWidth(Math.max(280, Math.min(WIDTHS[S.wide], max))).catch(() => {});
+    setTimeout(fitCanvas, 150); setTimeout(fitCanvas, 500);
+  }
+  bindSeg("wid", "wide", (v) => clamp(v, 0, 2), applyWidth);
+  bindSeg("fsz", "fs", (v) => clamp(v, 0, 2));
   bindSeg("csrc", "src", (v) => (v === "manual" ? "manual" : "auto"), () => { picked = { a: -1, m: -1, f: "" }; readExt(); if (!autoOn()) { S.exh = 0; S.fear = 0; } pullExt(); save(); paint(); renderEditor(); });
   // Änderungen im Charakterbogen (anderes Fenster) sofort übernehmen
   function syncExt() {
@@ -1929,6 +1955,7 @@ import * as FA from "./fa-core.js";
 
   OBR.onReady(async () => {
     myId = await OBR.player.getId();
+    applyWidth();
     try { isGM = (await OBR.player.getRole()) === "GM"; if (isGM) $("shrow").hidden = true; paint(); } catch { /* ignorieren */ }
     if (MINI) $("tab-hide").hidden = true;
     // Panelhöhe passt sich dem Inhalt an (kein leerer Platz unten, z. B. auf dem Tablet)
