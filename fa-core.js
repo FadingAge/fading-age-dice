@@ -11,7 +11,7 @@ export const ART = { w: "Weltlicher", v: "Verdammter", a: "Abtrünniger" };
 export const NATUREN = { hunger: "Hunger", eid: "Eid", vernunft: "Vernunft" };
 export const WF_ATTRS = 6; // Glück kann keine Wundfolge bekommen
 export const WF_MAX = 2; // je Attribut höchstens 2 eingetragene Wundfolgen
-export const MAX = { chars: 12, f: 24, m: 12, x: 12, bf: 6, zz: 12, nar: 6, cnn: 6, log: 80, q: 24, notes: 4000 };
+export const MAX = { chars: 12, f: 24, m: 12, x: 12, bf: 6, zz: 12, nar: 6, cnn: 6, log: 80, q: 24, ev: 20, notes: 4000 };
 export const TR_MAX = { fear: 6, exh: 6, wounds: 7, corr: 24, brand: 4 };
 
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, parseInt(x) || 0));
@@ -128,12 +128,20 @@ function logPush(s, e) {
   s.log.push({ id: uid(), t: Date.now(), cid: e.cid, src: txt(e.src, 20), text: txt(e.text, 120), before: e.before });
   if (s.log.length > MAX.log) s.log.splice(0, s.log.length - MAX.log);
 }
+// Meldungen an die SL: Alles, was der Spieler selbst ändert (nicht die SL, nicht die Würfel, nicht die erste Anlage), landet hier.
+// Der Hintergrund der Charakter-Extension holt die Meldungen ab und schickt sie der SL.
+export const SILENT = ["SL", "Würfel", "Anlage"];
+export function selfEvent(s, cid, text) {
+  if (!Array.isArray(s.ev)) s.ev = [];
+  s.ev.push({ id: uid(), t: Date.now(), cid, text: txt(text, 120) });
+  if (s.ev.length > MAX.ev) s.ev.splice(0, s.ev.length - MAX.ev);
+}
 // Änderung anwenden und im Verlauf festhalten. Rückgabe wie applyChange
 export function commit(s, cid, ch, src = "") {
   const c = s.chars.find((x) => x.id === cid);
   if (!c) return { ok: false, text: "Charakter nicht gefunden" };
   const before = snap(c), r = applyChange(c, ch);
-  if (r.ok) logPush(s, { cid, src, text: r.text, before });
+  if (r.ok) { logPush(s, { cid, src, text: r.text, before }); if (!SILENT.includes(src)) selfEvent(s, cid, r.text); }
   return r;
 }
 // Nur die jeweils letzte Änderung eines Charakters lässt sich zurücknehmen
@@ -142,7 +150,7 @@ export function undoLast(s, cid) {
     const e = s.log[i]; if (e.cid !== cid) continue;
     const c = s.chars.find((x) => x.id === cid); if (!c) return false;
     c.tr = cleanChar({ tr: e.before.tr }).tr; c.wf = cleanChar({ wf: e.before.wf }).wf; c.dead = txt(e.before.dead, 80);
-    s.log.splice(i, 1); return true;
+    s.log.splice(i, 1); if (e.src !== "Anlage") selfEvent(s, cid, "Zurückgenommen: " + e.text); return true;
   }
   return false;
 }
@@ -167,10 +175,14 @@ export function acceptProposal(s, id, force = false) {
   if (r.ok || !r.death) s.q.splice(i, 1);
   return r;
 }
-export function rejectProposal(s, id) { const i = s.q.findIndex((p) => p.id === id); if (i >= 0) s.q.splice(i, 1); }
+export function rejectProposal(s, id) {
+  const i = s.q.findIndex((p) => p.id === id); if (i < 0) return;
+  const p = s.q[i]; s.q.splice(i, 1);
+  if (p.src === "SL") selfEvent(s, p.cid, "Vorschlag abgelehnt: " + proposalText(null, p)); // die SL erfährt, dass ihr Vorschlag nicht eingetragen wurde
+}
 
 // ---------- Speicher ----------
-export const emptyStore = () => ({ v: 1, ci: "", chars: [], q: [], log: [] });
+export const emptyStore = () => ({ v: 1, ci: "", chars: [], q: [], log: [], ev: [] });
 export function cleanStore(s) {
   s = obj(s);
   const out = emptyStore();
@@ -179,6 +191,7 @@ export function cleanStore(s) {
   out.ci = out.chars.some((c) => c.id === s.ci) ? s.ci : out.chars.length ? out.chars[0].id : "";
   out.q = arr(s.q, MAX.q).filter((p) => p && seen.has(p.cid) && ["corr", "fear", "exh", "wf", "wounds"].includes(p.kind) && parseInt(p.delta))
     .map((p) => ({ id: txt(p.id, 40) || uid(), t: clamp(p.t, 0, 9e15), cid: p.cid, kind: p.kind, delta: clamp(p.delta, -12, 12), attr: clamp(p.attr, 0, WF_ATTRS - 1), label: txt(p.label, 60), src: txt(p.src, 20) }));
+  out.ev = arr(s.ev, MAX.ev).filter((e) => e && txt(e.text, 120)).map((e) => ({ id: txt(e.id, 40) || uid(), t: clamp(e.t, 0, 9e15), cid: txt(e.cid, 40), text: txt(e.text, 120) }));
   out.log = arr(s.log, MAX.log).filter((e) => e && seen.has(e.cid))
     .map((e) => ({ id: txt(e.id, 40) || uid(), t: clamp(e.t, 0, 9e15), cid: e.cid, src: txt(e.src, 20), text: txt(e.text, 120),
       before: { tr: cleanChar({ tr: obj(e.before).tr }).tr, wf: cleanChar({ wf: obj(e.before).wf }).wf, dead: txt(obj(e.before).dead, 80) } }));
