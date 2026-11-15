@@ -1,13 +1,13 @@
 {
-  "name": "Fading Age Charakter",
-  "version": "0.1.1",
+  "name": "Fading Age SL",
+  "version": "0.10.1",
   "manifest_version": 1,
   "action": {
-    "title": "Charakter",
-    "icon": "https://fadingage.github.io/fading-age-dice/char/icon.svg",
-    "popover": "https://fadingage.github.io/fading-age-dice/char/index.html",
-    "width": 420,
-    "height": 720
+    "title": "Fading Age SL",
+    "icon": "https://fadingage.github.io/fading-age-dice/sl/icon.svg",
+    "popover": "https://fadingage.github.io/fading-age-dice/sl/index.html",
+    "width": 340,
+    "height": 520
   },
-  "background_url": "https://fadingage.github.io/fading-age-dice/char/background.html"
+  "background_url": "https://fadingage.github.io/fading-age-dice/sl/background.html"
 }
