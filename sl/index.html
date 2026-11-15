@@ -482,7 +482,7 @@
   // Pool aus W6 (5-6 = 1 Erfolg), MW6 (5-6 = 2 Erfolge) und Fertigkeit (feste Erfolge). Die Erfolge werden gegen das Attribut jedes gewählten Charakters gehalten:
   // Erfolge unter dem Attribut = nicht betroffen, Attribut oder Attribut +1 = betroffen, Attribut +2 oder mehr = kritisch betroffen.
   const PKEY = "fa-sl-probe";
-  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, 0, 5), nw: o.nw === undefined ? 3 : clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
+  const probe = (() => { const o = readJ(PKEY, {}); return { a: clamp(o.a, -1, 5), nw: o.nw === undefined ? 3 : clamp(o.nw, 0, 20), nm: clamp(o.nm, 0, 10), sk: clamp(o.sk, 0, 3), open: !!o.open }; })();
   const saveProbe = () => writeJ(PKEY, probe);
   let psel = null, proll = null; // psel: Auswahl (null = alle aktiven Spieler), proll: letzter Wurf
   function targets() {
@@ -500,17 +500,17 @@
   }
   function probePanel() {
     const det = mk("details", "ncard pcard"), sm = mk("summary"); sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "SL-Probe: Wer ist betroffen?"));
-    // Zurücksetzen wie beim Spieler: Würfel und Ergebnis der Probe leeren (Attribut und Auswahl der Spieler bleiben)
+    // Zurücksetzen wie beim Spieler: Attribut, Würfel und Ergebnis der Probe leeren (die Auswahl der Spieler bleibt)
     const rs = mk("button", "rst"); rs.type = "button"; rs.title = "Probe zurücksetzen"; rs.setAttribute("aria-label", "Probe zurücksetzen");
     rs.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
-    rs.disabled = !proll && !probe.nw && !probe.nm && !probe.sk;
-    rs.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); if (rolling) return; proll = null; probe.nw = 0; probe.nm = 0; probe.sk = 0; saveProbe(); renderChars(); });
+    rs.disabled = !proll && probe.a < 0 && !probe.nw && !probe.nm && !probe.sk;
+    rs.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); if (rolling) return; proll = null; probe.a = -1; probe.nw = 0; probe.nm = 0; probe.sk = 0; saveProbe(); renderChars(); });
     sm.appendChild(rs); det.appendChild(sm);
     det.open = probe.open; det.addEventListener("toggle", () => { probe.open = det.open; saveProbe(); });
     const b = mk("div", "ib");
     b.appendChild(mk("div", "lab", "Attribut"));
     const ac = mk("div", "achips pa"); // ohne Glück, das lässt sich nicht proben
-    ATTRS.slice(0, 6).forEach((n, i) => { const x = mk("button", i === probe.a ? "on" : "", n); x.addEventListener("click", () => { probe.a = i; saveProbe(); renderChars(); }); ac.appendChild(x); });
+    ATTRS.slice(0, 6).forEach((n, i) => { const x = mk("button", i === probe.a ? "on" : "", n); x.addEventListener("click", () => { probe.a = probe.a === i ? -1 : i; saveProbe(); renderChars(); }); ac.appendChild(x); });
     b.appendChild(ac);
     const pr = mk("div", "prow2");
     pr.appendChild(stepper("W6", probe.nw, 0, 20, (v) => { probe.nw = v; saveProbe(); renderChars(); }));
@@ -545,7 +545,8 @@
     ts.forEach((t) => { const x = mk("button", sel.has(t.key) ? "on" : "", t.name + (t.own ? " (eigener)" : "")); x.addEventListener("click", () => { const n = new Set(sel); if (n.has(t.key)) n.delete(t.key); else n.add(t.key); psel = n; renderChars(); }); tc.appendChild(x); });
     b.appendChild(tc);
     if (!ts.length) b.appendChild(mk("p", "hint", "Noch keine Charaktere zur Auswahl."));
-    if (proll) {
+    if (proll && probe.a < 0) b.appendChild(mk("p", "hint", "Attribut wählen, dann zeigt sich, wer betroffen ist."));
+    else if (proll) {
       const S = hitsOf(proll), list = mk("div", "pres");
       ts.filter((t) => sel.has(t.key)).forEach((t) => {
         const A = effA(t.c, probe.a), d = S - A, cls = d >= 2 ? "crit" : d >= 0 ? "aff" : "ok", lbl = d >= 2 ? "kritisch betroffen" : d >= 0 ? "betroffen" : "nicht betroffen";
@@ -556,12 +557,12 @@
       if (!list.children.length) list.appendChild(mk("p", "hint", "Niemand ausgewählt."));
       b.appendChild(list);
       // Auswirkung auf die Betroffenen: betroffen +1, kritisch betroffen +2 (Spieler mit Charakter-Extension, die SL schickt es ihnen direkt)
-      const aff = ts.filter((t) => sel.has(t.key) && !t.own && t.c.tr).map((t) => { const d = S - effA(t.c, probe.a); return { pid: t.key.slice(2), add: d >= 2 ? 2 : d >= 0 ? 1 : 0 }; }).filter((x) => x.add > 0);
+      const aff = ts.filter((t) => sel.has(t.key) && !t.own && t.c.tr).map((t) => { const d = S - effA(t.c, probe.a); return { pid: t.key.slice(2), name: t.name, add: d >= 2 ? 2 : d >= 0 ? 1 : 0 }; }).filter((x) => x.add > 0);
       if (aff.length) {
         const ap = mk("div", "apply"); ap.appendChild(mk("div", "lab", "Auswirkung eintragen"));
         const row = mk("div", "achips");
         [["exh", "Erschöpfung"], ["fear", "Furcht"]].forEach(([k, n]) => {
-          const done = proll.applied && proll.applied[k], x = mk("button", done ? "on" : "", done ? n + " eingetragen" : `${n} für ${aff.length}`); x.disabled = !!done;
+          const done = proll.applied && proll.applied[k], x = mk("button", done ? "on" : "", done ? n + " eingetragen" : n); x.disabled = !!done; x.title = aff.map((a) => `${a.name} +${a.add}`).join(", ");
           x.addEventListener("click", () => { aff.forEach((a) => cond(a.pid, k, a.add)); proll.applied = { ...(proll.applied || {}), [k]: true }; renderChars(); });
           row.appendChild(x);
         });
