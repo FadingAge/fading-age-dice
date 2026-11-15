@@ -466,7 +466,7 @@
     const unseen = list.filter((e) => !e.seen).length;
     const det = mk("details", "ncard scard" + (unseen ? " new" : "")), sm = mk("summary");
     sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "Eigenänderungen der Spieler" + (unseen ? ` (${unseen} neu)` : "")));
-    det.appendChild(sm); det.open = selfOpen === null ? unseen > 0 : selfOpen; det.addEventListener("toggle", () => { selfOpen = det.open; });
+    det.appendChild(sm); det.open = selfOpen === true; // standardmäßig zugeklappt, neue Meldungen zeigt die rote Kopfzeile det.addEventListener("toggle", () => { selfOpen = det.open; });
     const b = mk("div", "ib");
     list.slice().reverse().slice(0, 15).forEach((e) => {
       const r = mk("div", "srow" + (e.seen ? "" : " un")); r.appendChild(mk("time", "", hm(e.t)));
