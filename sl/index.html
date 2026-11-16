@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fading Age SL</title>
-<link rel="stylesheet" href="../theme.css">
-<script src="../themes.js"></script>
+<link rel="stylesheet" href="../looks.css">
+<script src="../looks.js"></script>
 <style>
-  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  :root { font-family: system-ui, sans-serif; }
   body { margin: 0; padding: 12px; background: var(--bg); color: var(--txt); font-size: 14px; }
   [hidden] { display: none !important; }
   button, select { font-family: inherit; }
@@ -101,9 +101,6 @@
   .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
   .seg button:last-child { border-radius: 0 6px 6px 0; }
   .seg button.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-weight: 700; }
-  .themes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
-  .themes button { height: 34px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer; padding: 0; }
-  .themes button.on { border-color: var(--txt); box-shadow: 0 0 0 2px var(--acc); }
   /* Tabellen zum Nachschlagen */
   .subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
   .subtabs button { flex: 1 1 auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--mut); font-size: 12px; font-weight: 700; cursor: pointer; }
@@ -248,7 +245,7 @@
     <p class="hint">Verdeckt: Die Spieler sehen meine Würfel in meinem Würfelstil, aber ohne Augen. Das Auge oben links schaltet dasselbe um.</p>
     <div class="sec">Design</div>
     <div class="seg" id="s-theme-auto"><button data-s="auto">Wie Würfel-Tracker</button><button data-s="own">Eigenes wählen</button></div>
-    <div class="themes" id="s-themes"></div>
+    <div id="s-themes" hidden><div class="looks" id="s-looks"></div><div class="pals" id="s-pals"></div><div class="palname" id="s-palname"></div></div>
     <div class="sec">Im Charakter anzeigen</div>
     <div id="s-show"></div>
     <p class="hint">Spieler teilen immer alle Werte. Hier stellst Du nur ein, was Du in der Übersicht siehst.</p>
@@ -262,13 +259,13 @@
   import { level } from "../fa-core.js";
   import { readLooks } from "./looks.js";
   import { RUECK, REAKTION, REAKTION_MOD, WUNDEN, EFFEKTE, EREIGNIS, HINTERHALT } from "./tabellen.js";
-  const TH = window.FA_THEMES || { daemmerung: ["#120f17", "#e5ca8a", "Dämmerung", "#5d4790"] };
+  const LK = window.FA_LOOKS;
   let set = readSet();
   // Design: wie der Würfel-Tracker (gleiche Herkunft, gleicher Speicher) oder eigene Wahl
   function applyTheme() {
     let t = set.theme;
-    if (t === "auto" || !TH[t]) { try { t = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme; } catch { t = ""; } }
-    document.documentElement.dataset.theme = TH[t] ? t : "daemmerung";
+    if (t === "auto" || !LK.valid(t)) t = LK.stored();
+    LK.apply(t);
   }
   applyTheme();
   const $ = (id) => document.getElementById(id);
@@ -798,14 +795,25 @@
   const saveSet = () => writeJ(KEYS.set, set);
   function renderSet() {
     document.querySelectorAll("#s-cast button").forEach((b) => b.classList.toggle("on", b.dataset.s === set.cast));
-    const own = set.theme !== "auto" && !!TH[set.theme];
+    const own = set.theme !== "auto" && LK.valid(set.theme);
     document.querySelectorAll("#s-theme-auto button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "own") === own));
-    const box = $("s-themes"); box.hidden = !own; box.textContent = "";
-    Object.keys(TH).forEach((k) => {
-      const b = mk("button"); b.title = TH[k][2]; b.setAttribute("aria-label", TH[k][2]);
-      b.style.background = `linear-gradient(135deg, ${TH[k][0]} 34%, ${TH[k][3]} 34% 67%, ${TH[k][1]} 67%)`; b.classList.toggle("on", k === set.theme);
-      b.addEventListener("click", () => { set.theme = k; saveSet(); applyTheme(); renderSet(); }); box.appendChild(b);
-    });
+    const box = $("s-themes"); box.hidden = !own;
+    if (own) {
+      const cur = LK.parse(set.theme), grad = (sw) => `linear-gradient(135deg, ${sw[0]} 34%, ${sw[3]} 34% 67%, ${sw[1]} 67%)`;
+      const lb = $("s-looks"); lb.textContent = "";
+      LK.order.forEach((k) => {
+        const b = mk("button"); b.type = "button"; b.classList.toggle("on", k === cur.look);
+        const sw = mk("i", "sw"); sw.style.background = grad(LK.swatch(k, k === cur.look ? cur.pal : 0));
+        b.append(sw, mk("span", "", LK.looks[k].name));
+        b.addEventListener("click", () => { set.theme = k + "." + (k === cur.look ? cur.pal : 0); saveSet(); applyTheme(); renderSet(); }); lb.appendChild(b);
+      });
+      const pb = $("s-pals"); pb.textContent = "";
+      LK.looks[cur.look].pals.forEach((p, i) => {
+        const b = mk("button"); b.type = "button"; b.title = p[0]; b.setAttribute("aria-label", p[0]); b.style.background = grad(LK.swatch(cur.look, i)); b.classList.toggle("on", i === cur.pal);
+        b.addEventListener("click", () => { set.theme = cur.look + "." + i; saveSet(); applyTheme(); renderSet(); }); pb.appendChild(b);
+      });
+      $("s-palname").textContent = LK.looks[cur.look].pals[cur.pal][0];
+    }
     const sh = $("s-show"); sh.textContent = "";
     SHOW_LABELS.forEach(([k, n]) => {
       const row = mk("div", "srow"); row.appendChild(mk("div", "nm2", n));
@@ -816,7 +824,7 @@
   }
   document.querySelectorAll("#s-cast button").forEach((b) => b.addEventListener("click", () => { set.cast = b.dataset.s === "off" ? "off" : "mask"; writeJ(KEYS.set, set); paintCast(); renderSet(); }));
   document.querySelectorAll("#s-theme-auto button").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.s === "auto") set.theme = "auto"; else if (set.theme === "auto") { try { set.theme = JSON.parse(localStorage.getItem("fa-dice3") || "{}").theme || "daemmerung"; } catch { set.theme = "daemmerung"; } }
+    if (b.dataset.s === "auto") set.theme = "auto"; else if (set.theme === "auto") { const p = LK.parse(LK.stored()); set.theme = p.look + "." + p.pal; }
     saveSet(); applyTheme(); renderSet();
   }));
 
