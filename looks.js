@@ -4,7 +4,7 @@
 (function () {
   "use strict";
   var FONT = {
-    Vollkorn: "family=Vollkorn:ital,wght@0,400;0,600;0,700;1,400",
+    Vollkorn: "family=Vollkorn:ital,wght@0,400;0,500;0,600;0,700;1,400",
     "Pirata One": "family=Pirata+One",
     "Grenze Gotisch": "family=Grenze+Gotisch:wght@500;700",
     Almendra: "family=Almendra:wght@400;700",
@@ -28,12 +28,12 @@
       ["Eiter", "#0f0b12", "#1d1722", "#dfd4e6", "#b08ac0", "#5a2a6a"],
       ["Rost", "#120b08", "#241812", "#e0d0c0", "#c0703a", "#7a2a14"]] },
     pergament: { name: "Pergament und Tinte", font: "Grenze Gotisch", scheme: "light", pals: [
-      ["Siegelwachs", "#e6d5aa", "#d4bc86", "#2b1d12", "#7a1f2b", "#2e3f6b"],
-      ["Lapislazuli", "#dadcd6", "#bfc6c6", "#1a2238", "#254a8f", "#8a5a1c"],
-      ["Efeu", "#dcdcb4", "#c4c78e", "#1f2a1a", "#3f5a2a", "#7a4a1a"],
-      ["Safran", "#ecd78e", "#d9bd6a", "#33220c", "#b5560f", "#6b2a2a"],
-      ["Purpur", "#e0cbc6", "#c9aaa8", "#2c1620", "#6a2a5a", "#2f4a63"],
-      ["Schiefer", "#d6d3ca", "#bbb7ab", "#1c1c1c", "#3a3f45", "#8a2a2a"]] },
+      ["Schwarz auf Weiß", "#f1ead8", "#e2d8bd", "#17120d", "#17120d", "#7a1f2b"],
+      ["Weiß auf Dunkelrot", "#3f0d12", "#5a1a20", "#f6efe2", "#f6efe2", "#1c0a0c", 1],
+      ["Weiß auf Nachtblau", "#0f1d45", "#1a2d66", "#f4f1e8", "#f4f1e8", "#070f2a", 1],
+      ["Dunkelrot auf Weiß", "#f4ecdc", "#e4d6bb", "#5a0f16", "#7a1620", "#1a1410"],
+      ["Dunkelblau auf Weiß", "#f0efe6", "#dcdccf", "#10224f", "#1b3a8a", "#7a1620"],
+      ["Weiß auf Waldgrün", "#10301f", "#1a4a30", "#f1f0e0", "#f1f0e0", "#071a10", 1]] },
     holzschnitt: { name: "Holzschnitt", font: "Grenze Gotisch", scheme: "light", pals: [
       ["Schwarz auf Weiß", "#ece7dc", "#ddd6c6", "#141210", "#141210", "#9c1c1c"],
       ["Blaudruck", "#e4e9ea", "#cdd7da", "#14233f", "#14233f", "#b8452a"],
@@ -77,6 +77,7 @@
       v.line = mix(pn, tx, 0.16); v.line2 = mix(pn, ac, 0.55);
       v.mut = mix(tx, bg, 0.22); v.mut2 = mix(tx, bg, 0.45);
       v.tray1 = mix(pn, ac, 0.1); v.tray2 = mix(bg, "#000000", 0.62);
+      v.good = "#a6f0a0"; v.warn = "#ffd95c"; v.bad = "#ff9088"; v.pan = "#e3adff"; v.fear = "#d2baff";
       if (L.scheme === "light") { v.tray1 = mix(pn, ac, 0.06); v.tray2 = mix(bg, "#000000", 0.5); }
     }
     v.acc2 = light ? mix(ac, "#ffffff", 0.18) : mix(ac, "#ffffff", 0.24);
