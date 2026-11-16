@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fading Age Charakter</title>
-<link rel="stylesheet" href="../theme.css">
-<script src="../themes.js"></script>
+<link rel="stylesheet" href="../looks.css">
+<script src="../looks.js"></script>
 <style>
-  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  :root { font-family: system-ui, sans-serif; }
   body { margin: 0; padding: 10px 12px 16px; background: var(--bg); color: var(--txt); font-size: 14px; }
   [hidden] { display: none !important; }
   button, select, input, textarea { font-family: inherit; font-size: inherit; color: inherit; }
@@ -159,7 +159,7 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return nu
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignorieren */ } };
 
 // Design wie in der Würfel-Extension
-(() => { try { const t = JSON.parse(lsGet("fa-dice3") || "{}").theme; if (window.FA_THEMES && window.FA_THEMES[t]) document.documentElement.dataset.theme = t; } catch { /* ignorieren */ } })();
+(() => { try { if (window.FA_LOOKS) FA_LOOKS.apply(JSON.parse(lsGet("fa-dice3") || "{}").theme); } catch { /* ignorieren */ } })();
 
 let S = FA.readStore(), raw = lsGet(FA.STORE);
 let tab = ["bogen", "fert", "gear", "notiz", "verlauf"].includes(lsGet("fa-char-tab")) ? lsGet("fa-char-tab") : "bogen";
@@ -406,7 +406,7 @@ function viewGear(box, c) {
       else row.appendChild(h("b", "", String(ar.r[k])));
       left.appendChild(row);
     });
-    if (edit) right.appendChild(field("Höchste Haltbarkeit", selectIn(nums(0, 8), ar.hm, (v) => setC((x) => { x.ar.hm = +v; x.ar.hz = Math.min(x.ar.hz, +v); }))));
+    if (edit) right.appendChild(field("Höchste Haltbarkeit", selectIn(nums(hasAr ? 1 : 0, 8), Math.max(ar.hm, hasAr ? 1 : 0), (v) => setC((x) => { x.ar.hm = +v; x.ar.hz = Math.min(x.ar.hz, +v); }))));
     right.appendChild(h("span", "ml", "Haltbarkeit"));
     if (ar.hm) right.appendChild(dpips(ar.hz, ar.hm, (v) => setC((x) => { x.ar.hz = v; }))); else right.appendChild(h("div", "gm", "keine"));
     grid.appendChild(left); grid.appendChild(right); ac.appendChild(grid);
