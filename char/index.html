@@ -210,7 +210,7 @@ $("edit").addEventListener("click", () => { edit = !edit; if (edit) startEdit(fa
 function paintTabs() {
   const t = $("tabs"); t.textContent = "";
   const c = cur(), np = c ? S.q.filter((p) => p.cid === c.id).length : 0;
-  [["bogen", "Bogen"], ["fert", "Fertigkeiten"], ["gear", "Ausrüstung"], ["notiz", "Notizen"], ["verlauf", "Verlauf"]].forEach(([k, n]) => {
+  [["bogen", "Werte"], ["fert", "Fertigkeiten"], ["gear", "Ausrüstung"], ["notiz", "Notizen"], ["verlauf", "Verlauf"]].forEach(([k, n]) => {
     const b = h("button", k === tab ? "on" : "", n); b.type = "button";
     if (k === "bogen" && np) b.appendChild(h("i", "dot"));
     b.addEventListener("click", () => { tab = k; clrArm = false; delArm = false; lsSet("fa-char-tab", k); render(); });
