@@ -1724,7 +1724,7 @@ import * as FA from "./fa-core.js";
   bindSeg("lte", "lite", (v) => v === "1", () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(W, H, false); meshes.forEach(setGlow); kick(); });
   // Look und Farbpalette (36 Kombinationen, gemeinsam mit Charakter und SL)
   const LK = FA_LOOKS, curLook = () => LK.parse(S.theme).look, curPal = () => LK.parse(S.theme).pal;
-  const swGrad = (sw) => `linear-gradient(135deg, ${sw[0]} 34%, ${sw[3]} 34% 67%, ${sw[1]} 67%)`;
+  const swGrad = (sw) => `linear-gradient(135deg, ${sw[0]} 50%, ${sw[1]} 50%)`;
   function renderThemes() {
     const look = curLook(), pal = curPal();
     $("looks").textContent = "";
