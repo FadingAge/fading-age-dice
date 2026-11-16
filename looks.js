@@ -11,11 +11,11 @@
     "Uncial Antiqua": "family=Uncial+Antiqua",
     "IM Fell English SC": "family=IM+Fell+English+SC"
   };
-  // Jede Palette besteht aus genau zwei Farben: [Name, Grund, Tinte]. Alles andere (Flächen, Linien, Knöpfe) sind Mischungen aus diesen beiden.
+  // Jede Palette besteht aus genau zwei Farben: [Name, Grund, Tinte, (1 = neutrale graue Flächen statt getönter)]. Alles andere (Flächen, Linien, Knöpfe) sind Mischungen aus diesen beiden.
   var LOOKS = {
     eisen: { name: "Eisen und Fackelschein", font: "Pirata One", pals: [
       ["Schwarz und Weiß", "#151515", "#ececec"],
-      ["Schwarz und Blutrot", "#130d0d", "#e5574a"],
+      ["Schwarz und Blutrot", "#0b0b0b", "#ff4a3c", 1],
       ["Schwarz und Stahl", "#111418", "#b4c4d2"]] },
     verlies: { name: "Verlies", font: "Uncial Antiqua", pals: [
       ["Schwarz und Knochen", "#0c0b0a", "#e6dcc2"],
@@ -24,7 +24,8 @@
     pergament: { name: "Pergament und Tinte", font: "Grenze Gotisch", pals: [
       ["Schwarz auf Weiß", "#f1ead8", "#17120d"],
       ["Dunkelrot auf Weiß", "#f4ecdc", "#6a1018"],
-      ["Weiß auf Dunkelrot", "#4a0f15", "#f6efe2"]] },
+      ["Weiß auf Dunkelrot", "#4a0f15", "#f6efe2"],
+      ["Aschgrau und Knochen", "#2b2a28", "#e8e0cc"]] },
     holzschnitt: { name: "Holzschnitt", font: "Grenze Gotisch", pals: [
       ["Schwarz auf Weiß", "#ece7dc", "#141210"],
       ["Negativdruck", "#14120f", "#ece7dc"],
@@ -34,9 +35,9 @@
       ["Schwarz und Silber", "#0b0d12", "#cdd6e4"],
       ["Oxblut und Bein", "#2a0a0e", "#ecdcc0"]] },
     moor: { name: "Hexenmoor", font: "IM Fell English SC", pals: [
-      ["Schwarz und Birke", "#10110f", "#e8e4d4"],
-      ["Nebel", "#101416", "#b9c6cc"],
-      ["Nachtschatten", "#14101a", "#cbb8e0"]] }
+      ["Hexenviolett", "#1c0b33", "#dcb8ff"],
+      ["Kürbis", "#100a05", "#ff9a2e"],
+      ["Geisterblau", "#08202e", "#8fe3ff"]] }
   };
   var ORDER = ["eisen", "verlies", "pergament", "holzschnitt", "grimoire", "moor"];
   var DEFAULT = "eisen.0";
@@ -58,9 +59,9 @@
       v.tray1 = mix(i, "#ffffff", 0.18); v.tray2 = mix(i, "#000000", 0.45);
       v.good = "#2d6a2a"; v.warn = "#8a5200"; v.bad = "#a3231c"; v.pan = "#6a2a9a"; v.fear = "#5a3a9a";
     } else {
-      v.panel = mix(g, i, 0.12); v.line = mix(g, i, 0.28); v.line2 = mix(g, i, 0.55);
+      v.panel = p[3] ? mix(g, "#ffffff", 0.09) : mix(g, i, 0.12); v.line = p[3] ? mix(g, "#ffffff", 0.24) : mix(g, i, 0.28); v.line2 = mix(g, i, p[3] ? 0.65 : 0.55);
       v.mut = mix(i, g, 0.2); v.mut2 = mix(i, g, 0.42);
-      v.acc2 = mix(i, "#ffffff", 0.3); v.alt = mix(g, i, 0.3); v.alt2 = mix(g, i, 0.52);
+      v.acc2 = mix(i, "#ffffff", 0.3); v.alt = p[3] ? mix(g, "#ffffff", 0.2) : mix(g, i, 0.3); v.alt2 = p[3] ? mix(g, "#ffffff", 0.36) : mix(g, i, 0.52);
       v.tray1 = mix(g, i, 0.16); v.tray2 = mix(g, "#000000", 0.5);
       v.good = "#a6f0a0"; v.warn = "#ffd95c"; v.bad = "#ff9088"; v.pan = "#e3adff"; v.fear = "#d2baff";
     }
