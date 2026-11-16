@@ -145,7 +145,7 @@ export function alerts(c) {
   const out = [];
   if (c.dead) out.push({ k: "dead", t: "Gestorben: " + c.dead });
   if (c.t === "v" && c.tr.corr > 6) out.push({ k: "ausbruch", t: "Korruption über 6: Fluchausbruch" });
-  if (c.t === "a" && c.tr.corr > korrLimit(c)) out.push({ k: "grenze", t: `Korruptionsgrenze (${korrLimit(c)}) überschritten` });
+  if (c.t === "a" && c.tr.corr > korrLimit(c)) out.push({ k: "grenze", t: `Korruptionsgrenze (${korrLimit(c)}) überschritten: Entfesselung erzwungen` });
   if (handsUsed(c) > 2) out.push({ k: "hands", t: `Mehr als zwei Hände belegt (${handsUsed(c)}): Waffe oder Schild weglegen` });
   return out;
 }
@@ -154,7 +154,7 @@ export function alerts(c) {
 export function viewChar(c) {
   return { id: c.id, n: c.n, t: c.t, a: ATTRS.map((_, i) => effAttr(c, i)), a0: c.a.slice(), wf: [...c.wf, 0], k: c.k.slice(),
     f: c.f.map((e) => ({ n: e.n, r: e.r })), m: c.m.map((e) => ({ n: e.n, v: e.v })), x: c.x.slice(), dead: c.dead,
-    fear: level(c.tr.fear), exh: level(c.tr.exh), fac: c.fac,
+    fear: level(c.tr.fear), exh: level(c.tr.exh), fac: c.fac, corr: c.tr.corr, lim: korrLimit(c),
     gear: { w: c.w.filter((w) => w.eq).map((w) => ({ n: w.n, h: w.h, art: w.art.map((i) => DMG[i]), at: w.at.slice(), rw: w.rw, e: w.e, hz: w.hz, hm: w.hm })),
       sh: c.sh.act ? { n: c.sh.n, v: c.sh.v, r: c.sh.r, hz: c.sh.hz, hm: c.sh.hm } : null } };
 }
@@ -244,7 +244,7 @@ export function addProposal(s, p) {
   if (!s.chars.some((c) => c.id === p.cid)) return false;
   const kind = ["corr", "fear", "exh", "wf", "wounds"].includes(p.kind) ? p.kind : "";
   const delta = clamp(p.delta, -12, 12); if (!kind || !delta) return false;
-  s.q.push({ id: uid(), t: Date.now(), cid: p.cid, kind, delta, attr: kind === "wf" ? clamp(p.attr, 0, WF_ATTRS - 1) : 0, label: txt(p.label, 60), src: txt(p.src, 20) || "Würfel" });
+  s.q.push({ id: uid(), t: Date.now(), cid: p.cid, kind, delta, attr: kind === "wf" ? clamp(p.attr, 0, WF_ATTRS - 1) : 0, label: txt(p.label, 60), src: txt(p.src, 20) || "Würfel", ref: txt(p.ref, 40) });
   if (s.q.length > MAX.q) s.q.splice(0, s.q.length - MAX.q);
   return true;
 }
@@ -274,7 +274,7 @@ export function cleanStore(s) {
   arr(s.chars, MAX.chars).forEach((c) => { const cc = cleanChar(c); if (!seen.has(cc.id)) { seen.add(cc.id); out.chars.push(cc); } });
   out.ci = out.chars.some((c) => c.id === s.ci) ? s.ci : out.chars.length ? out.chars[0].id : "";
   out.q = arr(s.q, MAX.q).filter((p) => p && seen.has(p.cid) && ["corr", "fear", "exh", "wf", "wounds"].includes(p.kind) && parseInt(p.delta))
-    .map((p) => ({ id: txt(p.id, 40) || uid(), t: clamp(p.t, 0, 9e15), cid: p.cid, kind: p.kind, delta: clamp(p.delta, -12, 12), attr: clamp(p.attr, 0, WF_ATTRS - 1), label: txt(p.label, 60), src: txt(p.src, 20) }));
+    .map((p) => ({ id: txt(p.id, 40) || uid(), t: clamp(p.t, 0, 9e15), cid: p.cid, kind: p.kind, delta: clamp(p.delta, -12, 12), attr: clamp(p.attr, 0, WF_ATTRS - 1), label: txt(p.label, 60), src: txt(p.src, 20), ref: txt(p.ref, 40) }));
   out.ev = arr(s.ev, MAX.ev).filter((e) => e && txt(e.text, 120)).map((e) => ({ id: txt(e.id, 40) || uid(), t: clamp(e.t, 0, 9e15), cid: txt(e.cid, 40), text: txt(e.text, 120) }));
   out.log = arr(s.log, MAX.log).filter((e) => e && seen.has(e.cid))
     .map((e) => ({ id: txt(e.id, 40) || uid(), t: clamp(e.t, 0, 9e15), cid: e.cid, src: txt(e.src, 20), text: txt(e.text, 120),

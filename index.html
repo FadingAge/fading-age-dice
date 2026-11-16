@@ -182,7 +182,7 @@
   .cmr button { width: 18px; height: 22px; padding: 0; border: 0; background: none; color: var(--txt); font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit; }
   .cmr button:disabled { opacity: .25; cursor: default; }
   .cmr button:hover:not(:disabled) { color: var(--acc); }
-  .ccols { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-top: 10px; align-items: start; }
+  .ccols { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-top: 20px; align-items: start; }
   .clist { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .clist.locked { opacity: .3; pointer-events: none; filter: grayscale(.7); }
   .cchip { border: 1px solid var(--line); background: var(--bg); color: inherit; border-radius: 8px; cursor: pointer; font-family: inherit; line-height: 1.2; box-sizing: border-box; }
@@ -191,7 +191,7 @@
   .cchip.stack b { font-size: 19px; }
   .cchip.row { display: flex; justify-content: space-between; align-items: center; gap: 6px; width: 100%; min-height: 36px; padding: 6px 9px; font-size: 14px; text-align: left; }
   .ccols .cchip.row { font-size: 13px; padding: 6px 7px; }
-  .cchip.row span { min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+  .cchip.row span { min-width: 0; overflow-wrap: normal; word-break: normal; hyphens: none; }
   .cchip.row b { flex: none; color: var(--acc2); font-size: 15px; }
   .cchip:hover:not(:disabled):not(.fix) { border-color: var(--line2); }
   .cchip.on { background: var(--acc); border-color: var(--acc); color: var(--onacc); }
@@ -278,6 +278,9 @@
   #res, .pool-head { font-family: var(--serif); letter-spacing: 0; }
   .mid { transition: opacity 1s ease, transform .7s cubic-bezier(.2, 1.5, .4, 1); }
   .mid.wait { transform: scale(.85); }
+  #res .corrbtn:not(.done) { cursor: pointer; border-bottom: 2px dashed currentColor; padding-bottom: 1px; }
+  #res .corrbtn.done { opacity: .75; }
+  #res > .corrbtn { display: inline-block; }
   #res .sub { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; opacity: .85; }
   #res.panic { animation: pulse .8s ease-in-out 2; text-shadow: 0 0 10px #b46cff; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.14); } }
@@ -710,13 +713,28 @@ import * as FA from "./fa-core.js";
   const cidx = () => (autoOn() ? ext.ci : S.ci);
   const curCh = () => chars()[cidx()];
   // Furcht und Erschöpfung (Stufe 0-2) kommen im Automatisch-Modus aus dem Charakterbogen
-  function pullExt() { if (autoOn()) { const c = curCh(); S.exh = c.exh; S.fear = c.fear; } }
+  // Korruption: Beim Entfesseln entspricht die Zahl der KW6 der Korruption auf dem Charakterbogen (dort geändert = hier nachgezogen, danach frei anpassbar).
+  // Über der Korruptionsgrenze kommt eine Nachricht, Abtrünnige müssen dann entfesseln.
+  const corrSeen = {}, overSeen = {};
+  const isOver = (c) => !!c && ((c.t === "a" && c.corr > c.lim) || (c.t === "v" && c.corr > c.lim));
+  const forcedUnl = () => { const c = curCh(); return autoOn() && !!c && c.t === "a" && isOver(c); };
+  function pullExt() {
+    if (!autoOn()) return;
+    const c = curCh(); S.exh = c.exh; S.fear = c.fear;
+    if (c.t === "a" && corrSeen[c.id] !== c.corr) { corrSeen[c.id] = c.corr; S.un = Math.min(12, Math.max(1, c.corr)); }
+    const over = isOver(c);
+    if (c.id in overSeen && over && !overSeen[c.id]) {
+      const msg = c.t === "a" ? `Korruptionsgrenze (${c.lim}) überschritten: Entfesselung erzwungen!` : `Korruption über ${c.lim}: Fluchausbruch!`;
+      try { OBR.notification.show(`${c.n || "Charakter"}: ${msg}`, "WARNING"); } catch { /* ignorieren */ }
+    }
+    overSeen[c.id] = over;
+  }
   pullExt();
   // Vorschlag an den Charakterbogen: der Spieler trägt ihn dort selbst ein oder lehnt ihn ab
-  function propose(kind, delta, why) {
+  function propose(kind, delta, why, ref) {
     try {
       const c = autoOn() ? curCh() : null; if (!c || !delta) return;
-      FA.update((st) => FA.addProposal(st, { cid: c.id, kind, delta, label: why, src: "Würfel" }));
+      FA.update((st) => FA.addProposal(st, { cid: c.id, kind, delta, label: why, src: "Würfel", ref }));
     } catch { /* ignorieren */ }
   }
 
@@ -1339,6 +1357,7 @@ import * as FA from "./fa-core.js";
   }
 
   // ---------- Zustand und Anzeige ----------
+  const corrDone = new Set();
   let myId = "", state = null, adj = 0, hiddenRoll = false, maskRoll = false, isGM = false; // maskRoll (nur SL): andere sehen Würfel mit Fragezeichen
   // Ergebnis und Protokoll erscheinen erst nach den Würfen: 2 Sekunden Pause, dann 1 Sekunde Einblenden
   const REVEAL_MS = 2000;
@@ -1390,6 +1409,20 @@ import * as FA from "./fa-core.js";
     if (state && state.mask) { txt = "?"; subs.length = 0; mtone = ""; }
     $("res").textContent = txt;
     subs.forEach((t) => { const d = document.createElement("span"); d.className = "sub"; d.textContent = t; $("res").appendChild(d); });
+    // Korruption aus einem Zauberwurf: Antippen trägt sie auf dem Charakterbogen ein
+    {
+      const mg2 = state && !state.mask && !revealing && state.mode === "magic" && state.pid === myId && autoOn() ? magicOf(state.dice) : null;
+      if (mg2 && !mg2.unleash && mg2.corr > 0) {
+        const open = FA.readStore().q.some((p) => p.ref === state.id), done = corrDone.has(state.id);
+        const kids = [...$("res").querySelectorAll(".sub")];
+        let el = state.probe ? kids.find((k) => /Korruption/.test(k.textContent)) : null;
+        if (!el && !state.probe) { el = document.createElement("span"); el.textContent = $("res").firstChild ? $("res").firstChild.textContent : ""; $("res").firstChild.remove(); $("res").prepend(el); }
+        if (el && (open || done)) {
+          el.classList.add("corrbtn"); if (done) { el.classList.add("done"); el.textContent += " (eingetragen)"; }
+          else { el.setAttribute("role", "button"); el.tabIndex = 0; el.title = "Antippen: Korruption auf dem Charakterbogen eintragen"; el.textContent += " +"; el.dataset.id = state.id; el.dataset.n = mg2.corr; }
+        }
+      }
+    }
     $("res").className = revealing || !state || state.mask ? "" : state.done ? (state.n > 0 ? "pos" : "zero") : mtone || tone(state.total, state.raw, pan);
     $("res").hidden = phase2; $("adjbox").hidden = !phase2;
     const can = !revealing && !pan && mine && state.mode !== "magic" && state.mode !== "init" && state.raw >= 0 && !state.pushed && !state.done && state.dice.some(pushable);
@@ -1406,7 +1439,7 @@ import * as FA from "./fa-core.js";
     $("roll").disabled = revealing;
     document.querySelector(".mid").classList.toggle("wait", revealing);
     $("roll").title = arm ? "Initiative würfeln" : phase2 ? (adj > 0 ? `Angriffswert würfeln (${adj}W6)` : "Angriff verfehlt melden")
-      : (curMode() === "magic" ? (S.zu && magicClass() === "a" ? "Entfesseln würfeln" : "Zauber würfeln") : combatRoll() ? "Angriff würfeln" : "Würfeln");
+      : (curMode() === "magic" ? (unleashing() ? "Entfesseln würfeln" : "Zauber würfeln") : combatRoll() ? "Angriff würfeln" : "Würfeln");
     const wp = curMode() === "combat" && charView() ? skillIcon() : curMode() === "magic" ? "z" : "";
     if (wp) $("roll").dataset.wp = wp; else delete $("roll").dataset.wp;
     $("reset").hidden = !state || settingsOpen;
@@ -1517,7 +1550,8 @@ import * as FA from "./fa-core.js";
   // ---------- Bedienung ----------
   // Würfelauswahl: antippen setzt die Anzahl, erneutes Antippen des letzten gefüllten Feldes nimmt einen weg
   // Zauberreihe: Zauberwürfel oder (beim Abtrünnigen im Reiter Entfesseln) die Entfesselungswürfel
-  const zKey = () => (S.zu && magicClass() === "a" ? "un" : "zn");
+  const unleashing = () => magicClass() === "a" && (S.zu || forcedUnl());
+  const zKey = () => (unleashing() ? "un" : "zn");
   const POOLS = [["pool-w", () => "nw", "w"], ["pool-m", () => "nm", "m"], ["pool-z", zKey, "z"]];
   POOLS.forEach(([id, keyFn]) => {
     const el = $(id);
@@ -1549,18 +1583,20 @@ import * as FA from "./fa-core.js";
     });
     // Reiter Zauber (nur Verdammte und Abtrünnige in der Charakteransicht)
     {
-      const mg = magicClass(), md = curMode(), unl = mg === "a" && S.zu;
+      const mg = magicClass(), md = curMode(), unl = unleashing();
       $("tab-magic").hidden = !mg; document.querySelector(".switch").classList.toggle("has3", !!mg);
       $("zbox").hidden = md !== "magic";
       if (md === "magic") {
         $("zmode").hidden = mg !== "a";
-        document.querySelectorAll("#zmode button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === unl));
+        document.querySelectorAll("#zmode button").forEach((b) => { b.classList.toggle("on", (b.dataset.s === "1") === unl); b.disabled = forcedUnl() && b.dataset.s !== "1"; });
         document.querySelectorAll("#zprobe button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.zp));
         $("zprobe").hidden = unl;
         $("z-lbl").textContent = unl ? "Entfesseln:" : "Korruption:"; $("z-n").textContent = S[zKey()] + (!unl && S.fear > 0 ? ` +${S.fear}` : "");
         const at = pickedAttr(), eff = at ? effW() : 0, sk = picked.f ? S.skill : 0;
         const fz = !unl && S.fear > 0 ? ` Furcht: ${S.fear} zusätzliche KW6.` : "";
-        $("zinfo").textContent = (unl ? "Macht zählt auf 4-6, Rückschlag auf 1-3. Beides wird getrennt gezählt."
+        const cz = curCh(), fcd = forcedUnl();
+        $("zinfo").textContent = (fcd ? `Korruptionsgrenze (${cz.lim}) überschritten: Die Entfesselung ist erzwungen. Macht zählt auf 4-6, Rückschlag auf 1-3.`
+          : unl ? "Macht zählt auf 4-6, Rückschlag auf 1-3. Beides wird getrennt gezählt." + (autoOn() ? ` Die Zahl der KW6 entspricht der Korruption auf dem Charakterbogen (${cz.corr}), Du kannst sie anpassen.` : "")
           : !S.zp ? "Es zählt nur die Korruption: 1-2 bringt Korruption, 5-6 nimmt sie wieder weg."
           : (eff > 0 || sk > 0) ? "Probe: zusätzlich " + [eff > 0 ? `${at} ${eff}W6 (5-6 = 1 Erfolg)` : "", sk > 0 ? `Fertigkeit ${ROMAN[sk]} als feste Erfolge` : ""].filter(Boolean).join(" und ")
           : "Probe: unten Attribut und Fertigkeit antippen, beide zählen mit (Merkmale nicht)") + fz;
@@ -1691,6 +1727,15 @@ import * as FA from "./fa-core.js";
     else if (autoOn() && picked.a >= 0) { S.nw = c.a[picked.a] > 0 ? c.a[picked.a] : 0; if (!S.nw) picked.a = -1; }
     pullExt(); paint();
   }
+  function enterCorr(el) {
+    const id = el.dataset.id; if (!id || corrDone.has(id)) return;
+    let ok = false;
+    try { FA.update((st) => { const p = st.q.find((q) => q.ref === id); if (p) ok = !!FA.acceptProposal(st, p.id).ok; }); } catch { /* ignorieren */ }
+    if (ok) corrDone.add(id);
+    readExt(); pullExt(); paint();
+  }
+  $("res").addEventListener("click", (e) => { const el = e.target.closest(".corrbtn:not(.done)"); if (el) enterCorr(el); });
+  $("res").addEventListener("keydown", (e) => { if (e.key !== "Enter" && e.key !== " ") return; const el = e.target.closest(".corrbtn:not(.done)"); if (el) { e.preventDefault(); enterCorr(el); } });
   window.addEventListener("storage", (e) => { if (e.key === FA.STORE || e.key === null) syncExt(); });
   window.addEventListener("focus", syncExt);
   setInterval(syncExt, 1500);
@@ -1717,6 +1762,16 @@ import * as FA from "./fa-core.js";
   const crow = (k, i, name, valTxt, on, off) => {
     const b = mk("button", "cchip row"); b.type = "button"; b.dataset.k = k; b.dataset.i = i; b.disabled = off; b.classList.toggle("on", on);
     b.appendChild(mk("span", "", name || "(ohne Name)")); b.appendChild(mk("b", "", valTxt)); b.title = `${name}: ${valTxt}`; return b;
+  };
+  // Zwei Wörter brechen am Leerzeichen um. Ist ein einzelnes Wort breiter als die Kachel, wird die Schrift etwas kleiner (nie getrennt)
+  const fitRows = () => {
+    document.querySelectorAll("#charcont .cchip.row span").forEach((sp) => {
+      sp.style.fontSize = ""; sp.style.overflowWrap = "";
+      if (!sp.clientWidth) return;
+      let fs = parseFloat(getComputedStyle(sp).fontSize);
+      while (sp.scrollWidth > sp.clientWidth + 1 && fs > 10) { fs -= 0.5; sp.style.fontSize = fs + "px"; }
+      if (sp.scrollWidth > sp.clientWidth + 1) sp.style.overflowWrap = "anywhere";
+    });
   };
   function renderChar() {
     const ch = curCh(), view = S.charOpen && !!ch; // Charakteransicht ersetzt die manuellen Regler
@@ -1774,13 +1829,13 @@ import * as FA from "./fa-core.js";
     });
     };
     const secCols = () => {
-    // Merkmale (mit Furcht) links, Fertigkeiten rechts, jeweils als Liste
+    // Fertigkeiten links, Merkmale (mit Furcht) rechts, jeweils als Liste
     const cols = mk("div", "ccols"); box.appendChild(cols);
-    const hl = mk("div", "ghead"); hl.appendChild(mk("div", "clbl", "Merkmale")); hl.appendChild(statFear);
-    const hr = mk("div", "ghead r"); hr.appendChild(mk("div", "clbl", "Fertigkeiten"));
-    const ll = mk("div", "clist"), lr = mk("div", "clist"); ll.classList.toggle("locked", S.fear > 0 || curMode() === "magic");
-    ch.m.forEach((e, i) => ll.appendChild(crow("m", i, e.n, String(e.v), picked.m === i && S.nm === e.v, false)));
-    ch.f.forEach((e, i) => lr.appendChild(crow("f", i, e.n, ROMAN[e.r], picked.f === "f" + i && S.skill === e.r, false)));
+    const hl = mk("div", "ghead"); hl.appendChild(mk("div", "clbl", "Fertigkeiten"));
+    const hr = mk("div", "ghead"); hr.appendChild(mk("div", "clbl", "Merkmale")); hr.appendChild(statFear);
+    const ll = mk("div", "clist"), lr = mk("div", "clist"); lr.classList.toggle("locked", S.fear > 0 || curMode() === "magic");
+    ch.f.forEach((e, i) => ll.appendChild(crow("f", i, e.n, ROMAN[e.r], picked.f === "f" + i && S.skill === e.r, false)));
+    ch.m.forEach((e, i) => lr.appendChild(crow("m", i, e.n, String(e.v), picked.m === i && S.nm === e.v, false)));
     [hl, hr, ll, lr].forEach((e) => cols.appendChild(e));
     };
     const secKampf = () => {
@@ -1796,6 +1851,7 @@ import * as FA from "./fa-core.js";
     };
     // Im Kampfmodus oben die Kampffertigkeiten, dann Merkmale und Fertigkeiten, Attribute ganz unten (Attribut wählt man auch über die Tags der Waffe)
     if (curMode() === "combat") { secKampf(); secCols(); secMakel(); secAttr(); } else { secAttr(); secCols(); secKampf(); secMakel(); }
+    requestAnimationFrame(fitRows);
   }
   let switching = false;
   $("charhead").addEventListener("click", () => {
@@ -1981,7 +2037,7 @@ import * as FA from "./fa-core.js";
   $("tab-normal").addEventListener("click", pickMode("normal"));
   $("tab-combat").addEventListener("click", pickMode("combat"));
   $("tab-magic").addEventListener("click", pickMode("magic"));
-  document.querySelectorAll("#zmode button").forEach((b) => b.addEventListener("click", () => { S.zu = b.dataset.s === "1"; save(); paint(); }));
+  document.querySelectorAll("#zmode button").forEach((b) => b.addEventListener("click", () => { if (forcedUnl()) return; S.zu = b.dataset.s === "1"; save(); paint(); }));
   document.querySelectorAll("#zprobe button").forEach((b) => b.addEventListener("click", () => { S.zp = b.dataset.s === "1"; save(); paint(); }));
   $("tab-set").addEventListener("click", () => setSettings(!settingsOpen));
   // Spieler: offen / verdeckt. SL: offen -> Würfel mit Fragezeichen -> unsichtbar -> offen
@@ -2087,7 +2143,7 @@ import * as FA from "./fa-core.js";
     }
 
     async function rollMagic() {
-      const cl = magicClass(), unl = cl === "a" && S.zu, probe = !unl && S.zp, dice = [];
+      const cl = magicClass(), unl = unleashing(), probe = !unl && S.zp, dice = [];
       const fz = unl ? 0 : S.fear; // Furcht: beim regulären Zaubern 1 bzw. 2 zusätzliche KW6 (nicht beim Entfesseln)
       for (let i = 0; i < (unl ? S.un : S.zn + fz); i++) dice.push({ k: unl ? "u" : "z", v: randInt(6), ...look("z") });
       let skill = 0, exh = 0, wmod = 0, attr = "";
@@ -2104,7 +2160,7 @@ import * as FA from "./fa-core.js";
       const L = magicLines(msg);
       msg.summary = `${label(msg)}: ${[L.txt, ...L.subs].join(", ")}`;
       const mk2 = maskRoll; await send(msg, msg.hidden); if (mk2) await sendMasked(msg).catch(() => {});
-      const mg = magicOf(msg.dice); if (!mg.unleash && mg.corr > 0) propose("corr", mg.corr, "Zauberwurf");
+      const mg = magicOf(msg.dice); if (!mg.unleash && mg.corr > 0) propose("corr", mg.corr, "Zauberwurf", msg.id);
     }
 
     // Initiative: der nächste Wurf nach dem Aufruf der SL ist immer 1W6, unabhängig von der Auswahl
