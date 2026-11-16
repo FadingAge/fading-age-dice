@@ -27,7 +27,7 @@ export const level = (p) => (p >= 5 ? 2 : p >= 3 ? 1 : 0);
 // ---------- Ausrüstung: Waffen, Rüstung, Schild, Munition ----------
 export const DMG = ["Wucht", "Klinge", "Geschoss"];
 export const AT_SHORT = ["KRA", "GES", "PRÄ", "INT", "WIL", "SIN", "GLÜ"]; // Schreibweise wie in der Waffentabelle
-export const BASIS_RES = 3; // Grundresistenz ohne Rüstung
+export const BASIS_RES = 2; // Grundresistenz ohne Rüstung (wie auf dem Charakterblatt)
 // Tabellen aus der Charaktererstellung (Schritt V und VI). Waffe: Name, Hände, Attribute, Schadensart, Reichweite, Eigenschaften
 export const WAFFEN = [
   ["Unbewaffnet", 1, "KRA,GES", "Wucht", "0", "Schwach II"],
@@ -114,7 +114,7 @@ export function cleanChar(c) {
     tr: { fear: clamp(tr.fear, 0, TR_MAX.fear), exh: clamp(tr.exh, 0, TR_MAX.exh), corr: clamp(tr.corr, 0, TR_MAX.corr),
       brand: clamp(tr.brand || 1, 1, TR_MAX.brand), wounds: clamp(tr.wounds, 0, TR_MAX.wounds),
       lvl: clamp(tr.lvl || 1, 1, 20), xp: clamp(tr.xp, 0, 9999), kxp: clamp(tr.kxp, 0, 9999) },
-    w: arr(c.w, MAX.w).map(cleanWeapon), ar: cleanArmor(c.ar), sh: cleanShield(c.sh), mun: cleanMun(c.mun), rb: clamp(c.rb, 0, 6),
+    w: arr(c.w, MAX.w).map(cleanWeapon), ar: cleanArmor(c.ar), sh: cleanShield(c.sh), mun: cleanMun(c.mun), rb: Math.max(clamp(c.rb, 0, 6), c.rv !== 1 && c.t !== "v" && c.t !== "a" ? 1 : 0), rv: 1, // ältere Stände: Weltliche bekommen ihr +1 jetzt sichtbar im Resistenzbonus
     dead: txt(c.dead, 80),
     notes: String(c.notes == null ? "" : c.notes).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f<>]/g, "").slice(0, MAX.notes),
   };
@@ -125,16 +125,15 @@ export const newChar = (name = "") => cleanChar({ n: name, a: [3, 3, 3, 3, 3, 3,
 export const effAttr = (c, i) => Math.max(0, c.a[i] - (i < WF_ATTRS ? c.wf[i] : 0));
 export const wfTotal = (c) => c.wf.reduce((s, v) => s + v, 0);
 
-// Wirksame Resistenz gegen Wucht, Klinge, Geschoss: Rüstungswert ersetzt die Grundresistenz 3, solange noch Haltbarkeit übrig ist (oder die Rüstung keine hat).
-// Dazu kommen die Resistenz eines gehaltenen, heilen Schilds und der persönliche Bonus.
+// Wirksame Resistenz gegen Wucht, Klinge, Geschoss, genau wie auf dem Charakterblatt: Grundresistenz 2, eine Rüstung zählt nur mit mindestens 1 Haltbarkeit und ersetzt die Grundresistenz, wenn ihr Wert höher ist.
+// Dazu kommen die Resistenz eines gehaltenen Schilds mit mindestens 1 Haltbarkeit und der Resistenzbonus (Weltliche haben dort automatisch +1).
 export function resist(c) {
-  const ar = c.ar, arOn = ar.r.some((v) => v > 0) && (ar.hm === 0 || ar.hz > 0);
-  const sh = c.sh, shOn = sh.act && sh.r > 0 && (sh.hm === 0 || sh.hz > 0);
-  return [0, 1, 2].map((i) => (arOn ? ar.r[i] : BASIS_RES) + (shOn ? sh.r : 0) + c.rb);
+  const arOn = c.ar.hz > 0, shOn = c.sh.act && c.sh.hz > 0;
+  return [0, 1, 2].map((i) => Math.max(BASIS_RES, arOn ? c.ar.r[i] : 0) + (shOn ? c.sh.r : 0) + c.rb);
 }
-// Schadensschwellen je Schadensart (Wucht, Klinge, Geschoss), vier Stück: R, dann jeweils + Attribut + Charakterstufe. Mit den Grundwerten der Attribute, wie das Charakterblatt.
+// Schadensschwellen je Schadensart (Wucht, Klinge, Geschoss), vier Stück: R, dann jeweils + Attribut + Charakterstufe. Mit den Attributen nach Abzug der Wundfolgen, wie das Charakterblatt.
 export function schwellen(c) {
-  const R = resist(c), a = c.a, L = c.tr.lvl, mk = (r, x, y, z) => { const s2 = r + x + L, s3 = s2 + y + L; return [r, s2, s3, s3 + z + L]; };
+  const R = resist(c), a = ATTRS.map((_, i) => effAttr(c, i)), L = c.tr.lvl, mk = (r, x, y, z) => { const s2 = r + x + L, s3 = s2 + y + L; return [r, s2, s3, s3 + z + L]; };
   return [mk(R[0], a[0], a[4], a[1]), mk(R[1], a[1], a[5], a[2]), mk(R[2], a[5], a[6], a[0])];
 }
 // Belegte Hände: gezogene Waffen und gehaltener Schild
@@ -155,7 +154,7 @@ export function alerts(c) {
 export function viewChar(c) {
   return { id: c.id, n: c.n, t: c.t, a: ATTRS.map((_, i) => effAttr(c, i)), a0: c.a.slice(), wf: [...c.wf, 0], k: c.k.slice(),
     f: c.f.map((e) => ({ n: e.n, r: e.r })), m: c.m.map((e) => ({ n: e.n, v: e.v })), x: c.x.slice(), dead: c.dead,
-    fear: level(c.tr.fear), exh: level(c.tr.exh),
+    fear: level(c.tr.fear), exh: level(c.tr.exh), fac: c.fac,
     gear: { w: c.w.filter((w) => w.eq).map((w) => ({ n: w.n, h: w.h, art: w.art.map((i) => DMG[i]), at: w.at.slice(), rw: w.rw, e: w.e, hz: w.hz, hm: w.hm })),
       sh: c.sh.act ? { n: c.sh.n, v: c.sh.v, r: c.sh.r, hz: c.sh.hz, hm: c.sh.hm } : null } };
 }

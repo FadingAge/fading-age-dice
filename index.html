@@ -39,7 +39,11 @@
   .abtn.init { background: var(--alt); color: #fff; animation: glow 1.4s ease-in-out infinite; }
   html.mini #initbar { display: none; }
   #tray { width: 100%; height: 170px; display: block; position: relative; z-index: 1; }
-  .act { display: grid; grid-template-columns: 50px 1fr 50px; gap: 6px; align-items: center; margin-top: 8px; }
+  .act { display: grid; grid-template-columns: 50px 1fr auto; gap: 6px; align-items: center; margin-top: 8px; }
+  #push.hasfac { gap: 6px; padding: 0 11px 0 9px; max-width: 150px; }
+  #push .pf { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-align: left; font-size: 13px; font-weight: 700; line-height: 1.12; hyphens: auto; overflow-wrap: anywhere; }
+  #push .pf.two { font-size: 11.5px; }
+  #push.hasfac:disabled { opacity: .6; }
   .abtn { height: 43px; border: 0; border-radius: 12px; background: var(--acc); color: var(--onacc); cursor: pointer;
     display: flex; align-items: center; justify-content: center; }
   .abtn svg { width: 25px; height: 25px; }
@@ -429,7 +433,7 @@
       <button class="abtn alt" id="push" disabled title="Push (Erfolglose neu würfeln)" aria-label="Push">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15.5 1.5 8.5 10l4 1.5V22" stroke-linejoin="miter" stroke-width="1.8"/><path d="M8.5 17.8l4 4.2 4-4.2" stroke-linejoin="miter" stroke-width="1.8"/>
-        </svg>
+        </svg><span class="pf" id="facname" hidden></span>
       </button>
     </div>
     <div class="pool-block">
@@ -1389,9 +1393,11 @@ import * as FA from "./fa-core.js";
     $("res").hidden = phase2; $("adjbox").hidden = !phase2;
     const can = !revealing && !pan && mine && state.mode !== "magic" && state.mode !== "init" && state.raw >= 0 && !state.pushed && !state.done && state.dice.some(pushable);
     $("push").disabled = !can;
+    const cc = autoOn() ? curCh() : null, fc = cc && cc.fac ? String(cc.fac) : ""; // Facette steht im Push-Knopf: sie darf den Wurf antreiben
+    $("facname").hidden = !fc; $("facname").textContent = fc; $("facname").classList.toggle("two", fc.length > 9); $("push").classList.toggle("hasfac", !!fc);
     $("fxbtn").hidden = !(phase2 && adj > 0);
     $("fxbtn").classList.toggle("on", effectOn);
-    $("push").title = state && state.pushed ? "Gepusht" : "Push (Erfolglose neu würfeln)";
+    $("push").title = state && state.pushed ? "Gepusht" : "Push (Erfolglose neu würfeln)" + (fc ? ". Facette: " + fc + ", sie muss die Handlung glaubhaft antreiben" : "");
     const arm = !MINI && !!initArmed();
     $("roll").classList.toggle("attack", phase2 && !arm);
     $("roll").classList.toggle("init", arm);
