@@ -6,7 +6,8 @@
 <title>Fading Age Würfel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap">
+<link rel="stylesheet" href="looks.css">
+<script src="looks.js"></script>
 <style>
   :root { color-scheme: dark; font-family: system-ui, sans-serif; }
   body { margin: 0; padding: 10px; background: var(--bg); color: var(--txt); font-size: 14px; }
@@ -128,6 +129,8 @@
   .cl { display: flex; flex-direction: column; gap: 3px; font-size: 11px; opacity: .9; }
   #settings select { height: 30px; min-width: 0; padding: 0 4px; border: 1px solid var(--line); border-radius: 6px;
     background: var(--panel); color: inherit; font-size: 12px; }
+  #settings .srow.col { flex-direction: column; align-items: stretch; gap: 0; }
+  #settings .srow.col .name { width: auto; }
   #settings .srow.dt { flex-wrap: wrap; gap: 6px 10px; }
   #settings .srow.dt select { flex: 1; }
   #settings .srow.dt .cols { display: flex; gap: 10px; width: 100%; padding-left: 62px; box-sizing: border-box; }
@@ -249,15 +252,6 @@
     font-size: 12px; font-weight: 700; }
   [hidden] { display: none !important; }
 
-  :root { --bg: #201032; --panel: #331a4e; --line: #4f3074; --line2: #9b6cd0; --mut: #d0c1e1; --mut2: #a17dc9; --acc: #e8c87d; --acc2: #efd495; --onacc: #262012; --alt: #6c38a8; --alt2: #a070d7; --tray1: #3b1d5d; --tray2: #09040e; --txt: #f2f0f4; --serif: "Cinzel", Georgia, "Times New Roman", serif; }
-  html[data-theme="wald"] { --bg: #0c321f; --panel: #144f32; --line: #28764f; --line2: #6cd09e; --mut: #c1e1d1; --mut2: #76d1a3; --acc: #f2d1b0; --acc2: #f8e0c9; --onacc: #261c12; --alt: #257e52; --alt2: #3acf85; --tray1: #165f3b; --tray2: #030e09; --txt: #f0f4f2; }
-  html[data-theme="glut"] { --bg: #4b0c11; --panel: #69141b; --line: #912730; --line2: #d06c74; --mut: #e1c1c4; --mut2: #d86e77; --acc: #f7f7f7; --acc2: #ffffff; --onacc: #1c1c1c; --alt: #4f2229; --alt2: #9c3a4a; --tray1: #7b141d; --tray2: #0f0204; --txt: #f4f0f1; }
-  html[data-theme="asche"] { --bg: #1a1a1a; --panel: #2d2d2d; --line: #4a4a4a; --line2: #9e9e9e; --mut: #d1d1d1; --mut2: #a3a3a3; --acc: #ebebeb; --acc2: #fafafa; --onacc: #1c1c1c; --alt: #566881; --alt2: #859bb7; --tray1: #363636; --tray2: #090909; --txt: #f2f2f2; }
-  html[data-theme="mitternacht"] { --bg: #0e0b0d; --panel: #241c20; --line: #43373d; --line2: #c5779c; --mut: #d7ccd1; --mut2: #ac9aa3; --acc: #fb56a8; --acc2: #f57ab8; --onacc: #26121c; --alt: #8b235e; --alt2: #d73c94; --tray1: #2e2429; --tray2: #0a0809; --txt: #f3f1f2; }
-  html[data-theme="kupfer"] { --bg: #2d150b; --panel: #4a2414; --line: #713e28; --line2: #d08a6c; --mut: #e1cbc1; --mut2: #cf9277; --acc: #7ecbf1; --acc2: #98d7f6; --onacc: #121f26; --alt: #9c421c; --alt2: #e46d3a; --tray1: #5a2b16; --tray2: #0e0704; --txt: #f4f1f0; }
-  html[data-theme="mohn"] { --bg: #092a29; --panel: #114947; --line: #23716e; --line2: #6cd0cd; --mut: #c1e1e0; --mut2: #73d4d0; --acc: #f18474; --acc2: #f69b8d; --onacc: #261512; --alt: #866913; --alt2: #e7b318; --tray1: #125957; --tray2: #030f0e; --txt: #f0f4f4; }
-  html[data-theme="tinte"] { --bg: #101d46; --panel: #1a2b63; --line: #2e4489; --line2: #6c83d0; --mut: #c1c9e1; --mut2: #768bd1; --acc: #fae242; --acc2: #f4e167; --onacc: #262312; --alt: #2b49ab; --alt2: #5e7cde; --tray1: #1b3074; --tray2: #03060e; --txt: #f0f1f4; }
-  html[data-theme="mandarine"] { --bg: #160e08; --panel: #311f14; --line: #573b29; --line2: #d0946c; --mut: #e1cec1; --mut2: #c49d82; --acc: #ff871f; --acc2: #f1994b; --onacc: #261b12; --alt: #a12917; --alt2: #ea4c34; --tray1: #3f2718; --tray2: #0d0805; --txt: #f4f2f0; }
 
   /* Ablage: Hintergrund, Vignette und optional Feuerschein */
   #tw { position: relative; border-radius: 10px; overflow: hidden;
@@ -350,9 +344,6 @@
   #settings .name { width: 90px; }
   .sub { margin-bottom: 4px; }
   #subtabs button { font-size: 13px; padding: 7px 2px; }
-  .themes { display: flex; flex-wrap: wrap; gap: 6px; max-width: 164px; }
-  .themes button { width: 26px; height: 26px; padding: 0; border-radius: 50%; cursor: pointer; border: 2px solid var(--line); }
-  .themes button.on { border-color: var(--txt); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--txt); }
 </style>
 </head>
 <body>
@@ -502,13 +493,14 @@
         <input type="range" id="pow" min="1" max="5" step="1"></div>
     </div>
     <div id="p-look" hidden>
-      <div class="srow"><span class="name">Design</span><div class="themes" id="themes"></div></div>
+      <div class="srow col"><span class="name">Look</span><div class="looks" id="looks"></div></div>
+      <div class="srow col"><span class="name">Farben</span><div><div class="pals" id="pals"></div><div class="palname" id="palname"></div></div></div>
       <div class="srow"><span class="name" title="Breite des Würfel-Panels">Breite</span>
         <div class="seg" id="wid"><button data-s="0">Schmal</button><button data-s="1">Mittel</button><button data-s="2">Breit</button></div></div>
       <div class="srow"><span class="name" title="Schriftgröße der Fertigkeiten, Merkmale und Makel">Schrift</span>
         <div class="seg" id="fsz"><button data-s="0">Klein</button><button data-s="1">Mittel</button><button data-s="2">Groß</button></div></div>
       <div class="srow"><span class="name">Ablage</span>
-        <div class="grid3" id="trs"><button data-s="plain">Schlicht</button><button data-s="felt">Filz</button><button data-s="wood">Holz</button><button data-s="stone">Stein</button><button data-s="leather">Leder</button><button data-s="paper">Papier</button></div></div>
+        <div class="grid3" id="trs"><button data-s="plain" title="Passend zum gewählten Look">Look</button><button data-s="felt">Filz</button><button data-s="wood">Holz</button><button data-s="stone">Stein</button><button data-s="leather">Leder</button><button data-s="paper">Papier</button></div></div>
       <div class="srow"><span class="name">Feuerschein</span>
         <div class="seg" id="fir"><button data-s="flicker">Flackern</button><button data-s="steady">Ruhig</button><button data-s="off">Aus</button></div></div>
       <div class="srow"><span class="name">Verlauf</span>
@@ -613,16 +605,6 @@ import * as FA from "./fa-core.js";
   }
 
   // ---------- Einstellungen (nur lokal gespeichert) ----------
-  const THEMES = {
-    daemmerung: ["#201032", "#e8c87d", "Dämmerung", "#6c38a8"],
-    wald: ["#0c321f", "#f2d1b0", "Smaragd und Pfirsich", "#257e52"],
-    glut: ["#4b0c11", "#f7f7f7", "Rot und Weiß", "#4f2229"],
-    asche: ["#1a1a1a", "#ebebeb", "Kohle", "#566881"],
-    mitternacht: ["#0e0b0d", "#fb56a8", "Lakritz und Pink", "#8b235e"],
-    kupfer: ["#2d150b", "#7ecbf1", "Kupfer und Himmel", "#9c421c"],
-    mohn: ["#092a29", "#f18474", "Lagune und Koralle", "#866913"],
-    tinte: ["#101d46", "#fae242", "Königsblau und Zitrone", "#2b49ab"],
-    mandarine: ["#160e08", "#ff871f", "Schwarz und Mandarine", "#a12917"] };
   // Fertige Würfel-Sets: Farben, Muster und Material fest vorgegeben (kind steuert das Muster, mat das Material)
   const PRESETS = {
     gem_gr:  { name: "Gemini Grün-Rot",     kind: "swirl",   a: "#0e4a2b", b: "#8a1820", hex: "#17653a", pip: "#f6f2e6", mat: "gloss" },
@@ -644,7 +626,7 @@ import * as FA from "./fa-core.js";
     kup_bl:  { name: "Kupfer-Blau",         kind: "frame",   frame: "#dc8d63", fill: "#2a74b8", hex: "#2a74b8", pip: "#e9a57c", mat: "metal" },
   };
   const freshDefaults = () => ({ cw: "#e0b035", pw: "#1a1408", cm: "#b83a3a", pm: "#f5efe0", cf: "#5b3a8c", pf: "#f5efe0", cz: "#1f7a86", pz: "#f5efe0", dz: "none", zn: 2, un: 3, zp: false, zu: false,
-    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: "daemmerung", tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, src: "auto", wide: 0, fs: 0, logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
+    mini: "all", minires: true, lite: false, dw: "none", dm: "none", df: "none", style: "pips", sound: true, hist: true, surf: "acryl", shadow: true, theme: FA_LOOKS.DEFAULT, tray: "plain", fire: "off", glow: "off", power: 3, vol: 80, nw: 3, nm: 0, skill: 0, chars: [], ci: 0, charOpen: true, src: "auto", wide: 0, fs: 0, logh: 90, exh: 0, fear: 0, wmod: 0, mode: "normal" });
   // Gespeicherte Daten (Browser oder Sicherung) werden immer streng geprüft und auf Standardwerte aufgesetzt
   function readSaved(s) {
     const S = freshDefaults();
@@ -660,7 +642,7 @@ import * as FA from "./fa-core.js";
     if (s.hist === false) S.hist = false;
     if (["acryl", "holz", "metall"].includes(s.surf)) S.surf = s.surf;
     if (s.shadow === false) S.shadow = false;
-    if (THEMES[s.theme]) S.theme = s.theme;
+    if (FA_LOOKS.valid(s.theme)) S.theme = s.theme;
     if (["plain", "felt", "wood", "stone", "leather", "paper"].includes(s.tray)) S.tray = s.tray;
     if (s.fire === true) S.fire = "flicker"; else if (["flicker", "steady", "off"].includes(s.fire)) S.fire = s.fire;
     if (s.power !== undefined) S.power = clamp(s.power, 1, 5);
@@ -1626,14 +1608,14 @@ import * as FA from "./fa-core.js";
     $("log").hidden = !S.hist;
     document.querySelectorAll("#lgh button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === (S.logh > 90)));
     fitLog();
-    document.documentElement.dataset.theme = S.theme;
+    S.theme = FA_LOOKS.apply(S.theme);
     $("tw").className = "bg-" + S.tray + (S.fire !== "off" && !S.lite ? " fire" : "") + (S.fire === "flicker" && !S.lite ? " flick" : "");
     document.documentElement.classList.toggle("lite", S.lite);
     document.querySelectorAll("#lte button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === S.lite));
     document.documentElement.dataset.fs = S.fs;
     const SEGVAL = { wid: String(S.wide), fsz: String(S.fs), csrc: S.src === "manual" ? "manual" : "auto", srf: S.surf, shd: S.shadow ? "1" : "0", trs: S.tray, fir: S.fire };
     for (const id in SEGVAL) document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset.s === SEGVAL[id]));
-    document.querySelectorAll("#themes button").forEach((b) => b.classList.toggle("on", b.dataset.t === S.theme));
+    renderThemes();
     $("btn-exh").dataset.l = S.exh; $("btn-fear").dataset.l = S.fear;
     ["btn-exh", "btn-fear"].forEach((id) => { const b = $(id); if (b.dataset.t0 === undefined) b.dataset.t0 = b.title; b.title = autoOn() ? "Kommt aus dem Charakterbogen und lässt sich nur dort ändern (oder durch die SL)." : b.dataset.t0; });
     $("tab-normal").classList.toggle("active", curMode() === "normal" && !settingsOpen);
@@ -1740,13 +1722,29 @@ import * as FA from "./fa-core.js";
   window.addEventListener("focus", syncExt);
   setInterval(syncExt, 1500);
   bindSeg("lte", "lite", (v) => v === "1", () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(W, H, false); meshes.forEach(setGlow); kick(); });
-  Object.keys(THEMES).forEach((t) => {
-    const b = document.createElement("button");
-    b.dataset.t = t; b.title = THEMES[t][2]; b.setAttribute("aria-label", THEMES[t][2]);
-    b.style.background = `linear-gradient(135deg, ${THEMES[t][0]} 34%, ${THEMES[t][3]} 34% 67%, ${THEMES[t][1]} 67%)`;
-    b.addEventListener("click", () => { S.theme = t; save(); paint(); });
-    $("themes").appendChild(b);
-  });
+  // Look und Farbpalette (36 Kombinationen, gemeinsam mit Charakter und SL)
+  const LK = FA_LOOKS, curLook = () => LK.parse(S.theme).look, curPal = () => LK.parse(S.theme).pal;
+  const swGrad = (sw) => `linear-gradient(135deg, ${sw[0]} 34%, ${sw[3]} 34% 67%, ${sw[1]} 67%)`;
+  function renderThemes() {
+    const look = curLook(), pal = curPal();
+    $("looks").textContent = "";
+    LK.order.forEach((k) => {
+      const b = document.createElement("button"); b.type = "button"; b.dataset.l = k; b.classList.toggle("on", k === look);
+      const sw = document.createElement("i"); sw.className = "sw"; sw.style.background = swGrad(LK.swatch(k, k === look ? pal : 0));
+      const t = document.createElement("span"); t.textContent = LK.looks[k].name;
+      b.append(sw, t);
+      b.addEventListener("click", () => { S.theme = k + "." + (k === look ? pal : 0); save(); paint(); });
+      $("looks").appendChild(b);
+    });
+    $("pals").textContent = "";
+    LK.looks[look].pals.forEach((p, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.title = p[0]; b.setAttribute("aria-label", p[0]); b.classList.toggle("on", i === pal);
+      b.style.background = swGrad(LK.swatch(look, i));
+      b.addEventListener("click", () => { S.theme = look + "." + i; save(); paint(); });
+      $("pals").appendChild(b);
+    });
+    $("palname").textContent = LK.looks[look].pals[pal][0];
+  }
   // ---------- Charaktere ----------
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
   function cchip(k, i, name, val, valTxt, on, off, stack) {

@@ -51,9 +51,9 @@ export const WAFFEN = [
   ["Pistole", 1, "GES,GLÜ", "Geschoss", "3", "Nachladen 3, Laut, Nahschuss, +2AW6"],
   ["Muskete", 2, "SIN,GLÜ", "Geschoss", "5", "Nachladen 4, Laut, +2AW6"],
 ];
-// Rüstung: Name, Wucht, Klinge, Geschoss, Haltbarkeit (0 = keine), Eigenschaften
+// Rüstung: Name, Wucht, Klinge, Geschoss, Haltbarkeit, Eigenschaften (jede Rüstung hat mindestens Haltbarkeit 1, egal was die Tabelle sagt)
 export const RUESTUNGEN = [
-  ["Alltagskleidung", 2, 3, 2, 0, ""], ["Schwere Kleidung", 3, 3, 2, 2, "Verbergbar"], ["Gepolsterte Kleidung", 4, 3, 3, 2, "Verbergbar"],
+  ["Alltagskleidung", 2, 3, 2, 1, ""], ["Schwere Kleidung", 3, 3, 2, 2, "Verbergbar"], ["Gepolsterte Kleidung", 4, 3, 3, 2, "Verbergbar"],
   ["Gambeson", 4, 4, 3, 3, ""], ["Lederharnisch", 3, 5, 3, 3, ""], ["Verstärkte leichte Rüstung", 4, 5, 4, 3, ""],
   ["Kettenhemd", 3, 6, 4, 4, "Verbergbar, Geräuschvoll"], ["Schuppenpanzer", 5, 6, 5, 4, "Schwerfällig I, Geräuschvoll"],
   ["Kettenrüstung", 4, 7, 5, 4, "Schwerfällig I, Geräuschvoll"], ["Brigantine", 5, 6, 7, 4, "Schwerfällig I"],
@@ -68,8 +68,10 @@ export function cleanWeapon(e) {
   return { n: txt(e.n, 40), h: e.h === 2 ? 2 : 1, art: idxs(e.art, 2, 3), at: idxs(e.at, 6, 3), rw: txt(e.rw, 8), e: txt(e.e, 80), hm, hz: clamp(e.hz, 0, hm), eq: !!e.eq };
 }
 export function cleanArmor(e) {
-  e = obj(e); const hm = clamp(e.hm, 0, 8), r = arr(e.r, 3);
-  return { n: txt(e.n, 40), r: [0, 1, 2].map((i) => clamp(r[i], 0, 12)), hm, hz: clamp(e.hz, 0, hm), e: txt(e.e, 80) };
+  e = obj(e); const r = arr(e.r, 3), rr = [0, 1, 2].map((i) => clamp(r[i], 0, 12));
+  const neu = rr.some((v) => v > 0) && clamp(e.hm, 0, 8) < 1; // eine Rüstung hat mindestens Haltbarkeit 1 (ältere Stände mit 0 werden angehoben)
+  const hm = neu ? 1 : clamp(e.hm, 0, 8);
+  return { n: txt(e.n, 40), r: rr, hm, hz: neu ? 1 : clamp(e.hz, 0, hm), e: txt(e.e, 80) };
 }
 // Munition: a = Schuss, die noch im Behälter sind (0 bis 10). Ältere Stände zählten abgegebene Schuss (u).
 export function cleanMun(e) {
@@ -86,7 +88,7 @@ export function weaponPreset(i) {
   const hm = w[0] === "Unbewaffnet" ? 0 : /Robust/.test(w[5]) ? 4 : 3; // Jede Waffe beginnt mit Haltbarkeit 3, robuste mit 4, unbewaffnet ohne
   return cleanWeapon({ n: w[0], h: w[1], at: names(w[2]).map((s) => AT_SHORT.indexOf(s)), art: names(w[3]).map((s) => DMG.indexOf(s)), rw: w[4], e: w[5], hm, hz: hm });
 }
-export function armorPreset(i) { const r = RUESTUNGEN[i]; return r ? cleanArmor({ n: r[0], r: [r[1], r[2], r[3]], hm: r[4], hz: r[4], e: r[5] }) : null; }
+export function armorPreset(i) { const r = RUESTUNGEN[i]; return r ? cleanArmor({ n: r[0], r: [r[1], r[2], r[3]], hm: Math.max(1, r[4]), hz: Math.max(1, r[4]), e: r[5] }) : null; }
 export function shieldPreset(i) { const s = SCHILDE[i]; return s ? cleanShield({ n: s[0], v: s[1], r: s[2], hm: s[3], hz: s[3], e: s[4] }) : null; }
 
 // ---------- Charakter ----------
@@ -262,7 +264,7 @@ export function acceptProposal(s, id, force = false) {
 export function rejectProposal(s, id) {
   const i = s.q.findIndex((p) => p.id === id); if (i < 0) return;
   const p = s.q[i]; s.q.splice(i, 1);
-  if (p.src === "SL") selfEvent(s, p.cid, "Vorschlag abgelehnt: " + proposalText(null, p)); // die SL erfährt, dass ihr Vorschlag nicht eingetragen wurde
+  selfEvent(s, p.cid, "Vorschlag abgelehnt: " + proposalText(null, p)); // die SL erfährt, dass ein Vorschlag (von ihr oder aus einem Wurf, z. B. Korruption) nicht eingetragen wurde
 }
 
 // ---------- Speicher ----------

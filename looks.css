@@ -1,0 +1,181 @@
+/* Fading Age: gemeinsame Looks (Schrift, Form, Oberfläche) für Würfel, Charakter, SL und Ansage.
+   Die Farben setzt looks.js als CSS-Variablen; hier stehen Grundwerte (Eisen und Fackelschein, Fackelschein),
+   damit beim ersten Laden nichts aufblitzt. */
+:root {
+  --bg: #1c1b1a; --panel: #2c2a28; --txt: #e6dccb; --acc: #e8832e; --alt: #a8301c;
+  --line: #433f3b; --line2: #82502c; --mut: #b9b0a1; --mut2: #8f8878; --acc2: #ee9d5a; --onacc: #19130c; --alt2: #c4704f;
+  --tray1: #3a2d24; --tray2: #070605;
+  --hf: "Pirata One", Georgia, "Times New Roman", serif;
+  --bf: "Vollkorn", Georgia, "Times New Roman", serif;
+  --serif: var(--hf);
+  --r: 3px; --rl: 3px 0 0 3px; --rr: 0 3px 3px 0;
+  --sheen: linear-gradient(rgba(255,255,255,.08), rgba(0,0,0,.2));
+  --sh: 0 2px 4px rgba(0,0,0,.6); --shp: none;
+  --tex: none; --vig: none;
+}
+
+/* ---------- Schrift ---------- */
+html[data-look] body { font-family: var(--bf); font-size: 15px; font-size-adjust: .47; font-variant-numeric: lining-nums;
+  background-color: var(--bg); background-image: var(--vig), var(--tex); background-attachment: fixed, scroll; }
+html[data-look] :is(button, input, select) { font-family: inherit; }
+html[data-look] :is(h1, h2, .sec, .gh, #res, .pool-head, .clbl, .chead, .srow .name, .tabs button, .subtabs button, .go, .btn, .big, .ghost, .mbtn, .tag) {
+  font-family: var(--hf); font-weight: 400; font-size-adjust: .5; letter-spacing: .02em; }
+html[data-look] :is(#res, .pool-head) { font-weight: 400; }
+html[data-look] :is(h2, .sec) { font-size: 19px; text-transform: none; letter-spacing: .02em; color: var(--acc);
+  padding-bottom: 4px; background: linear-gradient(90deg, var(--line2), transparent) bottom / 100% 2px no-repeat; }
+html[data-look] h1 { text-transform: none; }
+html[data-look] .gh { text-transform: none; font-size: 14px; }
+html[data-look] .tab, html[data-look] .tabs button { font-weight: 400; }
+
+/* ---------- Flächen und Knöpfe (Form, Schatten, Glanz) ---------- */
+html[data-look] :is(.chead, #charbody, .cw, .entry, .card, .at, .gc, .li, .stp, .pre, .hold, .rn div,
+  .grp, .ccard, .st, .ncard, .egrp, .wres, .n, .prow, .trow, .tnote, .zt, .ib textarea) { border-radius: var(--r); box-shadow: var(--shp); }
+html[data-look] :is(.abtn, .tab, .slot, .sbtn, .go, .mbtn, .cchip, .grid3 button, .ed-x, .ed-add, .ed-in, .cmod, .chip,
+  .ibtn, .btn, .big, .add, .pm, .tg button, .wfb button, .li .x, .mun button, .top select, .ghost, .rbar .clr, .subtabs button,
+  .stufen button, .achips button, .tag, .mini, .ac, .d6, .erow .x, .zt button, select, input[type=text], textarea, #charsel) {
+  border-radius: var(--r); }
+html[data-look] :is(.abtn, .tab, .sbtn, .go, .mbtn, .cchip, .grid3 button, .ibtn, .btn, .big, .add, .pm, .tg button, .ghost,
+  .subtabs button, .stufen button, .achips button, .seg button, .tabs button, .step button) { background-image: var(--sheen); box-shadow: var(--sh); }
+html[data-look] .seg button:first-child, html[data-look] .step button:first-child, html[data-look] .tabs button:first-child { border-radius: var(--rl); }
+html[data-look] .seg button:last-child, html[data-look] .step button:last-child, html[data-look] .tabs button:last-child { border-radius: var(--rr); }
+html[data-look] .switch .tab:first-child { border-radius: var(--rl); }
+html[data-look] .switch .tab:nth-child(2) { border-radius: var(--rr); }
+html[data-look] .switch.has3 .tab:nth-child(2) { border-radius: 0; }
+html[data-look] .switch .tab:nth-child(3) { border-radius: var(--rr); }
+html[data-look] .tab.icon { border-radius: var(--r); }
+html[data-look] .abtn.attack { background-image: none; }
+
+/* ---------- Ablage: passend zum Look ---------- */
+html[data-look] #tw { border-radius: var(--r); }
+html[data-look] #tw::after { border-radius: var(--r); box-shadow: inset 0 0 0 3px var(--line2), inset 0 0 38px rgba(0,0,0,.55); }
+
+/* ---------- Auswahl von Look und Palette (Würfel- und SL-Einstellungen) ---------- */
+.looks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.looks button { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--txt); font-family: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.looks button .sw { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line2); }
+.looks button span { min-width: 0; line-height: 1.15; }
+.looks button.on { border-color: var(--acc); box-shadow: 0 0 0 1.5px var(--acc); }
+.pals { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.pals button { width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 2px solid var(--line2); cursor: pointer; }
+.pals button.on { border-color: var(--txt); box-shadow: 0 0 0 2px var(--acc); }
+.palname { margin-top: 6px; font-size: 13px; color: var(--mut); }
+.themes { display: block; }
+
+/* =========================================================
+   A  Pergament und Tinte
+   ========================================================= */
+html[data-look="pergament"] {
+  --hf: "Grenze Gotisch", Georgia, serif;
+  --r: 6px; --rl: 6px 0 0 6px; --rr: 0 6px 6px 0;
+  --sheen: linear-gradient(rgba(255,252,236,.35), rgba(90,55,20,.07));
+  --sh: 0 1px 0 rgba(255,246,220,.7), 0 2px 3px rgba(60,35,10,.35);
+  --shp: inset 0 0 0 1px rgba(255,248,226,.35), 0 1px 0 rgba(255,246,220,.6);
+  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .32  0 0 0 0 .22  0 0 0 0 .1  0 0 0 1.3 -.5'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --vig: radial-gradient(ellipse at 50% 22%, rgba(255,248,222,.4), transparent 62%), radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(90,55,20,.38) 100%);
+}
+html[data-look="pergament"] .tab.active, html[data-look="pergament"] .abtn { box-shadow: inset 0 0 0 1px rgba(255,235,200,.35), 0 2px 3px rgba(60,35,10,.4); }
+
+/* =========================================================
+   C  Eisen und Fackelschein
+   ========================================================= */
+html[data-look="eisen"] {
+  --hf: "Pirata One", Georgia, serif;
+  --r: 3px; --rl: 3px 0 0 3px; --rr: 0 3px 3px 0;
+  --sh: 0 2px 4px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+  --shp: inset 0 0 0 1px rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.5);
+  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.09' numOctaves='4' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .48  0 0 0 0 .45  0 0 0 .45 -.17'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    repeating-linear-gradient(0deg, transparent 0 66px, rgba(5,5,5,.6) 66px 69px), repeating-linear-gradient(90deg, transparent 0 118px, rgba(5,5,5,.45) 118px 120px);
+  --vig: radial-gradient(ellipse at 50% 30%, transparent 40%, rgba(0,0,0,.55) 100%);
+}
+html[data-look="eisen"] :is(.chead, #charbody, .card, .grp, .ccard, .ncard, .egrp) {
+  background-image: radial-gradient(circle at 9px 9px, rgba(255,255,255,.28) 0 2px, transparent 3px), radial-gradient(circle at calc(100% - 9px) 9px, rgba(255,255,255,.28) 0 2px, transparent 3px),
+    radial-gradient(circle at 9px calc(100% - 9px), rgba(255,255,255,.28) 0 2px, transparent 3px), radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), rgba(255,255,255,.28) 0 2px, transparent 3px); }
+html[data-look="eisen"] #tw.bg-plain { background:
+  repeating-linear-gradient(0deg, transparent 0 56px, rgba(0,0,0,.5) 56px 58px), repeating-linear-gradient(90deg, transparent 0 88px, rgba(0,0,0,.45) 88px 90px),
+  radial-gradient(ellipse at 50% 40%, var(--tray1) 0%, var(--tray2) 100%); }
+html[data-look="eisen"] #tw::after { box-shadow: inset 0 0 0 3px var(--line2), inset 0 0 0 5px rgba(0,0,0,.6), inset 0 0 40px rgba(0,0,0,.8); }
+
+/* =========================================================
+   D  Holzschnitt
+   ========================================================= */
+html[data-look="holzschnitt"] {
+  --hf: "Grenze Gotisch", Georgia, serif;
+  --r: 0px; --rl: 0; --rr: 0;
+  --line: var(--txt); --line2: var(--txt);
+  --sheen: none;
+  --sh: 3px 3px 0 var(--txt); --shp: 3px 3px 0 var(--txt);
+  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='21' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .25  0 0 0 0 .24  0 0 0 0 .22  0 0 0 1.1 -.4'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+html[data-look="holzschnitt"] :is(.tab.active, .tabs button.on, .seg button.on, .subtabs button.on, .go, .abtn:not(.alt):not(.attack)) { box-shadow: 3px 3px 0 var(--alt); }
+html[data-look="holzschnitt"] .seg, html[data-look="holzschnitt"] .tabs, html[data-look="holzschnitt"] .switch { box-shadow: none; }
+html[data-look="holzschnitt"] :is(.seg button, .tabs button, .switch .tab, .step button) { box-shadow: none; }
+html[data-look="holzschnitt"] :is(.seg button.on, .tabs button.on, .switch .tab.active, .step button.on) { box-shadow: none; }
+html[data-look="holzschnitt"] #tw.bg-plain { background: repeating-linear-gradient(45deg, var(--tray2) 0 3px, var(--tray1) 3px 5px); }
+html[data-look="holzschnitt"] #tw::after { box-shadow: inset 0 0 0 2px var(--txt), inset 0 0 28px rgba(0,0,0,.5); }
+html[data-look="holzschnitt"] :is(h2, .sec) { color: var(--txt); background: linear-gradient(90deg, var(--txt), transparent) bottom / 100% 3px no-repeat; }
+html[data-look="holzschnitt"] :is(.cmod, .ed-add) { border-style: dashed; }
+
+/* =========================================================
+   E  Schwarzes Grimoire
+   ========================================================= */
+html[data-look="grimoire"] {
+  --hf: "Almendra", Georgia, serif;
+  --r: 4px; --rl: 4px 0 0 4px; --rr: 0 4px 4px 0;
+  --sheen: linear-gradient(rgba(255,235,170,.12), rgba(0,0,0,.25));
+  --sh: 0 2px 5px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,236,180,.18);
+  --shp: inset 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 5px transparent;
+  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='17' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .22  0 0 0 0 .16  0 0 0 1.4 -.5'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --vig: radial-gradient(ellipse at 50% 30%, transparent 45%, rgba(0,0,0,.5) 100%);
+}
+html[data-look="grimoire"] :is(.chead, #charbody, .card, .grp, .ccard, .ncard, .egrp) { outline: 1px solid color-mix(in srgb, var(--acc) 30%, transparent); outline-offset: -5px; }
+html[data-look="grimoire"] #tw.bg-plain { background: radial-gradient(ellipse at 50% 42%, color-mix(in srgb, var(--alt) 70%, #000) 0%, color-mix(in srgb, var(--alt) 35%, #000) 62%, color-mix(in srgb, var(--alt) 14%, #000) 100%); }
+html[data-look="grimoire"] #tw::after { box-shadow: inset 0 0 0 2px var(--acc), inset 0 0 0 5px rgba(0,0,0,.7), inset 0 0 0 6px color-mix(in srgb, var(--acc) 45%, transparent), inset 0 0 40px rgba(0,0,0,.85); }
+html[data-look="grimoire"] :is(h2, .sec) { background: linear-gradient(90deg, var(--line2), transparent) bottom / 100% 1.5px no-repeat; }
+
+/* =========================================================
+   G  Verlies
+   ========================================================= */
+html[data-look="verlies"] {
+  --hf: "Uncial Antiqua", Georgia, serif;
+  --r: 3px; --rl: 3px 0 0 3px; --rr: 0 3px 3px 0;
+  --sheen: linear-gradient(rgba(255,255,255,.06), rgba(0,0,0,.28));
+  --sh: 0 3px 5px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.05);
+  --shp: inset 0 0 0 1px rgba(0,0,0,.7), 0 3px 8px rgba(0,0,0,.6);
+  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='360'><defs><filter id='f' x='-4%' y='-4%' width='108%' height='108%'><feTurbulence type='fractalNoise' baseFrequency='.03' numOctaves='3' seed='2' result='w'/><feDisplacementMap in='SourceGraphic' in2='w' scale='12' xChannelSelector='R' yChannelSelector='G'/></filter><filter id='g' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.07' numOctaves='5' seed='8'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.9 0 0 0 -.75'/></filter></defs><g filter='url(%23f)'><g fill='%23000' opacity='.6'><rect x='7' y='8' width='120' height='60' rx='13'/><rect x='137' y='8' width='122' height='60' rx='13'/><rect x='269' y='8' width='148' height='60' rx='13'/><rect x='7' y='78' width='76' height='42' rx='13'/><rect x='93' y='78' width='114' height='42' rx='13'/><rect x='217' y='78' width='110' height='42' rx='13'/><rect x='337' y='78' width='80' height='42' rx='13'/><rect x='7' y='130' width='162' height='76' rx='15'/><rect x='179' y='130' width='118' height='76' rx='15'/><rect x='307' y='130' width='110' height='76' rx='15'/><rect x='7' y='216' width='50' height='50' rx='13'/><rect x='67' y='216' width='120' height='50' rx='13'/><rect x='197' y='216' width='82' height='50' rx='13'/><rect x='289' y='216' width='128' height='50' rx='13'/><rect x='7' y='276' width='110' height='82' rx='15'/><rect x='127' y='276' width='120' height='82' rx='15'/><rect x='257' y='276' width='160' height='82' rx='15'/></g><g fill='%23fff' stroke='%23fff' stroke-opacity='.07' stroke-width='2'><rect x='5' y='5' width='120' height='60' rx='12' fill-opacity='.075'/><rect x='135' y='5' width='122' height='60' rx='12' fill-opacity='.1'/><rect x='267' y='5' width='148' height='60' rx='12' fill-opacity='.06'/><rect x='5' y='75' width='76' height='42' rx='12' fill-opacity='.1'/><rect x='91' y='75' width='114' height='42' rx='12' fill-opacity='.055'/><rect x='215' y='75' width='110' height='42' rx='12' fill-opacity='.085'/><rect x='335' y='75' width='80' height='42' rx='12' fill-opacity='.105'/><rect x='5' y='127' width='162' height='76' rx='14' fill-opacity='.065'/><rect x='177' y='127' width='118' height='76' rx='14' fill-opacity='.095'/><rect x='305' y='127' width='110' height='76' rx='14' fill-opacity='.075'/><rect x='5' y='213' width='50' height='50' rx='12' fill-opacity='.05'/><rect x='65' y='213' width='120' height='50' rx='12' fill-opacity='.1'/><rect x='195' y='213' width='82' height='50' rx='12' fill-opacity='.07'/><rect x='287' y='213' width='128' height='50' rx='12' fill-opacity='.09'/><rect x='5' y='273' width='110' height='82' rx='14' fill-opacity='.095'/><rect x='125' y='273' width='120' height='82' rx='14' fill-opacity='.055'/><rect x='255' y='273' width='160' height='82' rx='14' fill-opacity='.08'/></g></g><rect width='100%' height='100%' filter='url(%23g)' opacity='.55'/></svg>");
+  --vig: radial-gradient(ellipse at 90% 105%, rgba(138,28,20,.28), transparent 50%), radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,.7) 100%);
+}
+html[data-look="verlies"] :is(.chead, #charbody, .card, .grp, .ccard, .ncard, .egrp, .st) { background-color: color-mix(in srgb, var(--panel) 88%, transparent); }
+html[data-look="verlies"] #tw.bg-plain { background:
+  radial-gradient(ellipse at 18% 88%, rgba(138,28,20,.5), transparent 38%),
+  repeating-linear-gradient(0deg, transparent 0 56px, rgba(0,0,0,.5) 56px 58px), repeating-linear-gradient(90deg, transparent 0 88px, rgba(0,0,0,.45) 88px 90px),
+  radial-gradient(ellipse at 50% 40%, var(--tray1) 0%, var(--tray2) 100%); }
+html[data-look="verlies"] #tw::after { box-shadow: inset 0 0 0 4px var(--line), inset 0 0 0 5px #000, inset 0 0 40px rgba(0,0,0,.85); }
+html[data-look="verlies"] :is(h2, .sec) { background: repeating-linear-gradient(90deg, var(--line2) 0 9px, transparent 9px 12px) bottom / 100% 4px no-repeat; }
+
+/* =========================================================
+   H  Hexenmoor
+   ========================================================= */
+html[data-look="moor"] {
+  --hf: "IM Fell English SC", Georgia, serif;
+  --r: 9px 4px 10px 5px; --rl: 9px 0 0 5px; --rr: 0 4px 10px 0;
+  --sheen: linear-gradient(rgba(255,230,170,.1), rgba(0,0,0,.25));
+  --sh: 0 2px 4px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,220,160,.1);
+  --shp: 0 3px 6px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,220,160,.08);
+  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.06 .1' numOctaves='5' seed='31' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .22  0 0 0 0 .34  0 0 0 0 .17  0 0 0 .75 -.28'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --vig: radial-gradient(ellipse at 50% 100%, rgba(150,185,120,.14), transparent 55%), radial-gradient(ellipse at 50% 35%, transparent 40%, rgba(2,8,4,.7) 100%);
+}
+html[data-look="moor"] body::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 84px; pointer-events: none; z-index: -1; opacity: .55;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='84' viewBox='0 0 220 84'><g fill='%23040806'><path d='M22 84V66H10l14-22H14l14-24 14 24H32l14 22H34v18z'/><path d='M82 84V58H66l18-28H70l17-28 17 28H90l18 28H92v26z'/><path d='M150 84V68h-11l13-20h-9l12-20 12 20h-9l13 20h-11v16z'/><path d='M196 84V62h-12l15-23h-10l14-24 14 24h-10l15 23h-12v22z'/></g></svg>") repeat-x bottom / 220px 84px; }
+html[data-look="moor"] :is(.chead, #charbody, .card, .grp, .ccard, .ncard, .egrp) { border-width: 2px; }
+html[data-look="moor"] #tw.bg-plain { background: radial-gradient(ellipse at 50% 100%, rgba(190,215,150,.2), transparent 55%), radial-gradient(ellipse at 50% 40%, var(--tray1) 0%, var(--tray2) 100%); }
+html[data-look="moor"] #tw::after { box-shadow: inset 0 0 0 4px #4a3a28, inset 0 0 40px rgba(0,0,0,.8); }
+html[data-look="moor"] :is(h2, .sec) { background: linear-gradient(90deg, var(--line2), transparent) bottom / 100% 2px no-repeat; }
+
+/* ---------- Helle Looks: Farben, die auf dunklem Grund gedacht waren ---------- */
+html.light .pool-head.fear { color: var(--fear, #5a3a9a); }
+html.light .cchip.hurt b, html.light .cchip .hb { color: #a3231c; }
+html.light #tw { box-shadow: 0 1px 0 rgba(255,255,255,.4); }
+
+html.light { color-scheme: light; }
+html.mini, html.ann { color-scheme: normal !important; }
