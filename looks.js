@@ -14,47 +14,29 @@
   // Jede Palette besteht aus genau zwei Farben: [Name, Grund, Tinte]. Alles andere (Flächen, Linien, Knöpfe) sind Mischungen aus diesen beiden.
   var LOOKS = {
     eisen: { name: "Eisen und Fackelschein", font: "Pirata One", pals: [
-      ["Schwarz und Orange", "#171513", "#ff9f45"],
-      ["Eisen und Weiß", "#1f2124", "#eef0f2"],
-      ["Nachtblau und Eisblau", "#0f1a2b", "#b9dcff"],
-      ["Dunkelgrün und Mint", "#0f1f1a", "#a9f0d0"],
-      ["Blutrot und Weiß", "#3a0e0e", "#f6e6e0"],
-      ["Schwarz und Gold", "#15130c", "#efc95c"]] },
+      ["Schwarz und Weiß", "#151515", "#ececec"],
+      ["Schwarz und Blutrot", "#130d0d", "#e5574a"],
+      ["Schwarz und Stahl", "#111418", "#b4c4d2"]] },
     verlies: { name: "Verlies", font: "Uncial Antiqua", pals: [
       ["Schwarz und Knochen", "#0c0b0a", "#e6dcc2"],
-      ["Moder und Moos", "#0e140d", "#d6e6b0"],
-      ["Schwarz und Frost", "#0a0e13", "#bcd6ea"],
-      ["Schwefel", "#0f0f08", "#e2dc6a"],
-      ["Aubergine und Eiter", "#120d16", "#d9bdea"],
-      ["Rost", "#130b07", "#e0905a"]] },
+      ["Schwarz und Asche", "#111111", "#b9b9b9"],
+      ["Weiß auf Blutrot", "#2e0b0b", "#f0ebe4"]] },
     pergament: { name: "Pergament und Tinte", font: "Grenze Gotisch", pals: [
       ["Schwarz auf Weiß", "#f1ead8", "#17120d"],
-      ["Weiß auf Dunkelrot", "#4a0f15", "#f6efe2"],
-      ["Weiß auf Nachtblau", "#0f1d45", "#f4f1e8"],
       ["Dunkelrot auf Weiß", "#f4ecdc", "#6a1018"],
-      ["Dunkelblau auf Weiß", "#f0efe6", "#14286a"],
-      ["Weiß auf Waldgrün", "#10301f", "#f1f0e0"]] },
+      ["Weiß auf Dunkelrot", "#4a0f15", "#f6efe2"]] },
     holzschnitt: { name: "Holzschnitt", font: "Grenze Gotisch", pals: [
       ["Schwarz auf Weiß", "#ece7dc", "#141210"],
-      ["Blaudruck", "#e4e9ea", "#14233f"],
-      ["Sepia", "#eadfc6", "#3a2414"],
-      ["Waldholz", "#e3e6d3", "#1c3a1c"],
-      ["Zinnober", "#efe4d6", "#7a1610"],
-      ["Negativdruck", "#14120f", "#ece7dc"]] },
+      ["Negativdruck", "#14120f", "#ece7dc"],
+      ["Sepia", "#eadfc6", "#3a2414"]] },
     grimoire: { name: "Schwarzes Grimoire", font: "Almendra", pals: [
       ["Schwarz und Gold", "#100c0b", "#d4af62"],
       ["Schwarz und Silber", "#0b0d12", "#cdd6e4"],
-      ["Schwarz und Kupfer", "#150d0a", "#d9855a"],
-      ["Smaragd und Jade", "#0a1a13", "#8fe0b0"],
-      ["Aubergine und Flieder", "#170f1d", "#ceaaf0"],
       ["Oxblut und Bein", "#2a0a0e", "#ecdcc0"]] },
     moor: { name: "Hexenmoor", font: "IM Fell English SC", pals: [
-      ["Moor und Irrlicht", "#0f1a14", "#cfe070"],
-      ["Erde und Fliegenpilz", "#1b1210", "#ff8f78"],
-      ["Nebel", "#101a1d", "#b5d5de"],
-      ["Nachtschatten", "#16101c", "#cfa8ee"],
-      ["Moor und Birke", "#14160f", "#e8e2cc"],
-      ["Herbst", "#1a1408", "#f0a848"]] }
+      ["Schwarz und Birke", "#10110f", "#e8e4d4"],
+      ["Nebel", "#101416", "#b9c6cc"],
+      ["Nachtschatten", "#14101a", "#cbb8e0"]] }
   };
   var ORDER = ["eisen", "verlies", "pergament", "holzschnitt", "grimoire", "moor"];
   var DEFAULT = "eisen.0";
@@ -97,11 +79,11 @@
   }
 
   function parse(id) {
-    var m = /^([a-z]+)\.([0-5])$/.exec(String(id || ""));
-    if (m && LOOKS[m[1]]) return { look: m[1], pal: +m[2] };
+    var m = /^([a-z]+)\.([0-9])$/.exec(String(id || ""));
+    if (m && LOOKS[m[1]]) return { look: m[1], pal: +m[2] < LOOKS[m[1]].pals.length ? +m[2] : 0 };
     var d = DEFAULT.split("."); return { look: d[0], pal: +d[1] };
   }
-  function valid(id) { var m = /^([a-z]+)\.([0-5])$/.exec(String(id || "")); return !!(m && LOOKS[m[1]]); }
+  function valid(id) { var m = /^([a-z]+)\.([0-9])$/.exec(String(id || "")); return !!(m && LOOKS[m[1]] && +m[2] < LOOKS[m[1]].pals.length); }
 
   function apply(id) {
     var t = parse(id), root = document.documentElement, v = vars(t.look, t.pal), st = root.style;
