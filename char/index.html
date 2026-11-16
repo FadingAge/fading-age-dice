@@ -281,7 +281,7 @@ function viewBogen(box, c) {
   if (edit) {
     idc.appendChild(field("Name", textIn(c.n, 40, (v) => setC((x) => { x.n = v; }))));
     const f2 = h("div", "f2");
-    f2.appendChild(field("Art", selectIn(Object.entries(FA.ART), c.t, (v) => setC((x) => { x.t = v; }))));
+    f2.appendChild(field("Art", selectIn(Object.entries(FA.ART), c.t, (v) => setC((x) => { const was = x.t; x.t = v; if (v === "w" && was !== "w") x.rb = Math.max(x.rb, 1); else if (v !== "w" && was === "w" && x.rb === 1) x.rb = 0; })) /* Weltliche: Resistenzbonus +1 automatisch */));
     f2.appendChild(field("Natur", selectIn([["", "-"], ...Object.entries(FA.NATUREN)], c.nat, (v) => setC((x) => { x.nat = v; }))));
     f2.appendChild(field("Facette", textIn(c.fac, 30, (v) => setC((x) => { x.fac = v; }))));
     f2.appendChild(field("Prägung", textIn(c.pra, 40, (v) => setC((x) => { x.pra = v; }))));
@@ -352,10 +352,10 @@ function viewGear(box, c) {
   sw.appendChild(h("span")); ["1", "2", "3", "4"].forEach((n) => sw.appendChild(h("span", "hd", "Schw. " + n)));
   FA.DMG.forEach((n, i) => { sw.appendChild(h("span", "ty", n)); SW[i].forEach((v, j) => sw.appendChild(h("span", "v" + (j === 0 ? " r" : ""), String(v)))); });
   sc.appendChild(sw);
-  sc.appendChild(h("div", "hint", `Schwelle 1 ist die wirksame Resistenz (Wucht ${R[0]}, Klinge ${R[1]}, Geschoss ${R[2]}). Die übrigen kommen aus Attributen und Stufe ${c.tr.lvl}. Rüstung und Schild zählen nur mit Haltbarkeit, ein Schild nur in der Hand.`));
+  sc.appendChild(h("div", "hint", `Schwelle 1 ist die wirksame Resistenz (Wucht ${R[0]}, Klinge ${R[1]}, Geschoss ${R[2]}). Die übrigen kommen aus Attributen und Stufe ${c.tr.lvl}. Rüstung und Schild zählen nur mit Haltbarkeit, ein Schild nur in der Hand. Grundresistenz ${FA.BASIS_RES}, dazu der Resistenzbonus.`));
   if (edit) {
-    sc.appendChild(field("Persönlicher Resistenzbonus (gegen alle drei Arten, zum Beispiel Wertsteigerung des Weltlichen)", selectIn(nums(0, 6, (v) => "+" + v), c.rb, (v) => setC((x) => { x.rb = +v; }))));
-  } else if (c.rb) sc.appendChild(h("div", "hint", `Persönlicher Bonus: +${c.rb}`));
+    sc.appendChild(field("Resistenzbonus (gegen alle drei Arten). Weltliche haben automatisch +1", selectIn(nums(0, 6, (v) => "+" + v), c.rb, (v) => setC((x) => { x.rb = +v; }))));
+  } else if (c.rb) sc.appendChild(h("div", "hint", `Resistenzbonus: +${c.rb}`));
   box.appendChild(sc);
 
   // Waffen
@@ -412,7 +412,7 @@ function viewGear(box, c) {
     grid.appendChild(left); grid.appendChild(right); ac.appendChild(grid);
     if (edit) ac.appendChild(field("Eigenschaften", textIn(ar.e, 80, (v) => setC((x) => { x.ar.e = v; }))));
     else if (ar.e) ac.appendChild(h("div", "ge", ar.e));
-    if (hasAr && ar.hm && !ar.hz) ac.appendChild(h("div", "gm", "Kein Schutz mehr: es zählt die Grundresistenz " + FA.BASIS_RES + "."));
+    if (hasAr && !ar.hz) ac.appendChild(h("div", "gm", ar.hm ? "Kein Schutz mehr: es zählt die Grundresistenz " + FA.BASIS_RES + "." : "Ohne Haltbarkeit zählt die Rüstung nicht (wie auf dem Charakterblatt): es gilt die Grundresistenz " + FA.BASIS_RES + "."));
   } else ac.appendChild(h("div", "gm", `Ohne Rüstung gilt die Grundresistenz ${FA.BASIS_RES}.`));
   box.appendChild(ac);
 
