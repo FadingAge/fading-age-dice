@@ -724,9 +724,10 @@ import * as FA from "./fa-core.js";
   // Erfolge je Würfel: W6 +1 auf 5-6, MW6 +2 auf 5-6, FurchtW6 +2 auf 5-6 und -2 auf 1-2
   const hit = (d) => d.k === "e" || d.k === "u" || d.k === "i" ? 0 : d.k === "z" ? (d.v >= 5 ? 2 : 0) : d.k === "f" ? (d.v >= 5 ? 2 : d.v <= 2 ? -2 : 0)
     : (d.v >= 5 ? (d.k === "m" ? 2 : 1) : 0);
-  // Push: W6 und MW6 wenn erfolglos (1-4), FurchtW6 nur bei 3-4; das Ergebnis des Neuwurfs zählt wie beim Wurf
+  // Push: W6 und MW6 wenn erfolglos (1-4), FurchtW6 nur bei 3-4. Beim Neuwurf kostet 1-2 immer genau 1 Erfolg (auch MW6 und FurchtW6),
+  // 5-6 bringt +1 (W6) bzw. +2 (MW6, FurchtW6). Der Push ist beim W6 neutral, bei MW6 und FurchtW6 leicht positiv.
   const pushable = (d) => d.k === "f" ? (d.v === 3 || d.v === 4) : d.v < 5;
-  const pushDelta = (k, v) => (k === "f" ? 2 : k === "m" ? 2 : 1) * (v >= 5 ? 1 : v <= 2 ? -1 : 0);
+  const pushDelta = (k, v) => (v >= 5 ? (k === "f" || k === "m" ? 2 : 1) : v <= 2 ? -1 : 0);
   const plural = (n) => `${n} Erfolg${n === 1 ? "" : "e"}`;
   // Negative Erfolge sind ein kritischer Fehlschlag (rot), 0 Erfolge gelb, sonst grün
   const outcome = (total, raw, pan) => pan ? "PANIK" : raw < 0 ? `Kritischer Fehlschlag (${raw})` : plural(total);
