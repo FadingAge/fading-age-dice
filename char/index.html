@@ -159,7 +159,7 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return nu
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignorieren */ } };
 
 // Design wie in der Würfel-Extension
-(() => { try { if (window.FA_LOOKS) FA_LOOKS.apply(JSON.parse(lsGet("fa-dice3") || "{}").theme); } catch { /* ignorieren */ } })();
+if (window.FA_LOOKS) FA_LOOKS.follow(() => { try { return JSON.parse(lsGet("fa-dice3") || "{}").theme; } catch { return undefined; } });
 
 let S = FA.readStore(), raw = lsGet(FA.STORE);
 let tab = ["bogen", "fert", "gear", "notiz", "verlauf"].includes(lsGet("fa-char-tab")) ? lsGet("fa-char-tab") : "bogen";
