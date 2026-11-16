@@ -799,7 +799,7 @@
     document.querySelectorAll("#s-theme-auto button").forEach((b) => b.classList.toggle("on", (b.dataset.s === "own") === own));
     const box = $("s-themes"); box.hidden = !own;
     if (own) {
-      const cur = LK.parse(set.theme), grad = (sw) => `linear-gradient(135deg, ${sw[0]} 34%, ${sw[3]} 34% 67%, ${sw[1]} 67%)`;
+      const cur = LK.parse(set.theme), grad = (sw) => `linear-gradient(135deg, ${sw[0]} 50%, ${sw[1]} 50%)`;
       const lb = $("s-looks"); lb.textContent = "";
       LK.order.forEach((k) => {
         const b = mk("button"); b.type = "button"; b.classList.toggle("on", k === cur.look);
