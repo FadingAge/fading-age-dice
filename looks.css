@@ -96,26 +96,6 @@ html[data-look="eisen"] #tw.bg-plain { background:
 html[data-look="eisen"] #tw::after { box-shadow: inset 0 0 0 3px var(--line2), inset 0 0 0 5px rgba(0,0,0,.6), inset 0 0 40px rgba(0,0,0,.8); }
 
 /* =========================================================
-   D  Holzschnitt
-   ========================================================= */
-html[data-look="holzschnitt"] {
-  --hf: "Grenze Gotisch", Georgia, serif;
-  --r: 0px; --rl: 0; --rr: 0;
-  --line: var(--txt); --line2: var(--txt);
-  --sheen: none;
-  --sh: 3px 3px 0 var(--txt); --shp: 3px 3px 0 var(--txt);
-  --tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='21' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .25  0 0 0 0 .24  0 0 0 0 .22  0 0 0 1.1 -.4'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-}
-html[data-look="holzschnitt"] :is(.tab.active, .tabs button.on, .seg button.on, .subtabs button.on, .go, .abtn:not(.alt):not(.attack)) { box-shadow: 3px 3px 0 var(--alt); }
-html[data-look="holzschnitt"] .seg, html[data-look="holzschnitt"] .tabs, html[data-look="holzschnitt"] .switch { box-shadow: none; }
-html[data-look="holzschnitt"] :is(.seg button, .tabs button, .switch .tab, .step button) { box-shadow: none; }
-html[data-look="holzschnitt"] :is(.seg button.on, .tabs button.on, .switch .tab.active, .step button.on) { box-shadow: none; }
-html[data-look="holzschnitt"] #tw.bg-plain { background: repeating-linear-gradient(45deg, var(--tray2) 0 3px, var(--tray1) 3px 5px); }
-html[data-look="holzschnitt"] #tw::after { box-shadow: inset 0 0 0 2px var(--txt), inset 0 0 28px rgba(0,0,0,.5); }
-html[data-look="holzschnitt"] :is(h2, .sec) { color: var(--txt); background: linear-gradient(90deg, var(--txt), transparent) bottom / 100% 3px no-repeat; }
-html[data-look="holzschnitt"] :is(.cmod, .ed-add) { border-style: dashed; }
-
-/* =========================================================
    E  Schwarzes Grimoire
    ========================================================= */
 html[data-look="grimoire"] {

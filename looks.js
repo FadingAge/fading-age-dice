@@ -25,21 +25,17 @@
       ["Schwarz auf Weiß", "#f1ead8", "#17120d"],
       ["Dunkelrot auf Weiß", "#f4ecdc", "#6a1018"],
       ["Weiß auf Dunkelrot", "#4a0f15", "#f6efe2"],
-      ["Aschgrau und Knochen", "#2b2a28", "#e8e0cc"]] },
-    holzschnitt: { name: "Holzschnitt", font: "Grenze Gotisch", pals: [
-      ["Schwarz auf Weiß", "#ece7dc", "#141210"],
-      ["Negativdruck", "#14120f", "#ece7dc"],
-      ["Sepia", "#eadfc6", "#3a2414"]] },
+      ["Aschgrau und Knochen", "#141312", "#f4eedc"]] },
     grimoire: { name: "Schwarzes Grimoire", font: "Almendra", pals: [
-      ["Schwarz und Gold", "#100c0b", "#d4af62"],
+      ["Schwarz und Gold", "#050403", "#f2c964"],
       ["Schwarz und Silber", "#0b0d12", "#cdd6e4"],
-      ["Oxblut und Bein", "#2a0a0e", "#ecdcc0"]] },
+      ["Oxblut und Bein", "#150307", "#ecdcc0"]] },
     moor: { name: "Hexenmoor", font: "IM Fell English SC", pals: [
       ["Hexenviolett", "#1c0b33", "#dcb8ff"],
-      ["Kürbis", "#100a05", "#ff9a2e"],
-      ["Geisterblau", "#08202e", "#8fe3ff"]] }
+      ["Kürbis", "#060504", "#ffa338"],
+      ["Wald", "#0a1d12", "#e6e0a0"]] }
   };
-  var ORDER = ["eisen", "verlies", "pergament", "holzschnitt", "grimoire", "moor"];
+  var ORDER = ["eisen", "verlies", "pergament", "grimoire", "moor"];
   var DEFAULT = "eisen.0";
 
   function rgb(h) { h = h.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
