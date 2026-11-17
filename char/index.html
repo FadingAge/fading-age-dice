@@ -93,6 +93,11 @@
   .log time { flex: none; color: var(--mut2); font-size: 11px; width: 38px; }
   .log span { flex: 1; min-width: 0; }
   .log em { font-style: normal; color: var(--mut2); font-size: 11px; }
+  .stand { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
+  .stand .sr { display: grid; grid-template-columns: 92px 1fr; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.35; }
+  .stand .sr:first-child { border-top: 0; }
+  .stand .sr span { color: var(--mut); font-size: 12px; padding-top: 1px; }
+  .stand .sr b { font-weight: 600; white-space: pre-line; overflow-wrap: anywhere; }
   .hint { margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: var(--mut); }
   textarea.raw { width: 100%; box-sizing: border-box; min-height: 120px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 11px; font-family: ui-monospace, monospace; }
   .tabs button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -605,6 +610,57 @@ function importLegacy() {
   mut((s) => { old.forEach((o) => { if (s.chars.length >= FA.MAX.chars) return; const c = FA.cleanChar({ ...o, id: "" }); c.id = FA.uid(); s.chars.push(c); n++; }); if (!s.ci && s.chars.length) s.ci = s.chars[0].id; });
   note = `${n} Charakter${n === 1 ? "" : "e"} aus der Würfel-Extension übernommen. Die Würfel-Extension nutzt ab jetzt den Charakterbogen (Modus Automatisch).`; render();
 }
+// ---------- Endstand zum Abschreiben ----------
+let stMsg = "", stText = "";
+function standRows(c) {
+  const rows = [], add = (k, v) => { if (v !== "" && v != null) rows.push([k, String(v)]); };
+  const ranks = (a, key) => a.map((e) => `${e.n || "?"} ${ROMAN[e[key]]}`).join(", ");
+  const R = FA.resist(c), SW = FA.schwellen(c);
+  add("Name", c.n || "Unbenannt");
+  add("Art", [FA.ART[c.t], FA.NATUREN[c.nat]].filter(Boolean).join(", "));
+  add("Stufe", c.tr.lvl); add("Facette", c.fac); add("Prägung", c.pra);
+  if (c.tr.xp) add("Erfahrung", c.tr.xp);
+  add("Attribute", ATTRS.map((n, i) => `${n} ${c.a[i]}`).join(", "));
+  add("Wundfolgen", c.wf.map((v, i) => (v ? `${ATTRS[i]} ${v}` : "")).filter(Boolean).join(", ") || "keine");
+  add("Furcht", `${c.tr.fear} von ${FA.TR_MAX.fear}` + (FA.level(c.tr.fear) ? ` (Stufe ${ROMAN[FA.level(c.tr.fear)]})` : ""));
+  add("Erschöpfung", `${c.tr.exh} von ${FA.TR_MAX.exh}` + (FA.level(c.tr.exh) ? ` (Stufe ${ROMAN[FA.level(c.tr.exh)]})` : ""));
+  if (c.t !== "w") add("Korruption", `${c.tr.corr} von ${FA.korrLimit(c)}`);
+  if (c.t === "v") add("Brandmal", `${c.tr.brand} von ${FA.TR_MAX.brand}`);
+  add("Wunden", `${c.tr.wounds} von ${FA.TR_MAX.wounds}`);
+  add("Fertigkeiten", ranks(c.f, "r") || "keine");
+  add("Merkmale", c.m.map((e) => `${e.n || "?"} ${e.v}`).join(", ") || "keine");
+  add("Makel", c.x.filter(Boolean).join(", ") || "keine");
+  add("Kampf", FA.KAMPF.map((n, i) => `${n} ${c.k[i] ? ROMAN[c.k[i]] : "-"}`).join(", "));
+  add("Weg", c.weg); add("Schicksal", c.sf);
+  if (c.t === "v") { add("Biest", c.biest); add("Biestfähigkeiten", ranks(c.bf, "g")); add("Fluchzeichen", c.nar.filter(Boolean).join(", ")); }
+  if (c.t === "a") { add("Zauber", ranks(c.zz, "g")); add("Magienarben", c.nar.filter(Boolean).join(", ")); }
+  add("Schwellen", FA.DMG.map((n, i) => `${n} ${SW[i].join(" / ")}`).join("\n"));
+  add("Resistenz", `Wucht ${R[0]}, Klinge ${R[1]}, Geschoss ${R[2]}` + (c.rb ? `, Bonus +${c.rb}` : ""));
+  c.w.forEach((w, i) => add(i === 0 ? "Waffen" : "", [w.n || "(ohne Name)", w.art.map((k) => FA.DMG[k]).join("/"), w.at.map((k) => AT_FULL[k]).join("/"), w.rw ? "RW " + w.rw : "", w.h === 2 ? "zweihändig" : "einhändig", `Haltbarkeit ${w.hz} von ${w.hm}`, w.e, w.eq ? "in der Hand" : ""].filter(Boolean).join(", ")));
+  if (!c.w.length) add("Waffen", "keine");
+  if (c.ar.r.some((v) => v > 0) || c.ar.n) add("Rüstung", [c.ar.n || "(ohne Name)", `Wucht ${c.ar.r[0]}, Klinge ${c.ar.r[1]}, Geschoss ${c.ar.r[2]}`, `Haltbarkeit ${c.ar.hz} von ${c.ar.hm}`, c.ar.e].filter(Boolean).join(", ")); else add("Rüstung", "keine");
+  if (c.sh.n || c.sh.v || c.sh.r) add("Schild", [c.sh.n || "(ohne Name)", c.sh.v ? c.sh.v + "W6" : "", c.sh.r ? "Resistenz +" + c.sh.r : "", `Haltbarkeit ${c.sh.hz} von ${c.sh.hm}`, c.sh.e, c.sh.act ? "in der Hand" : ""].filter(Boolean).join(", ")); else add("Schild", "keins");
+  if (c.mun.n || c.mun.a) add("Munition", `${c.mun.n ? c.mun.n + ": " : ""}${c.mun.a} von 10 Schuss`);
+  c.cnn.forEach((e, i) => add(i === 0 ? "Verbindungen" : "", `${e.n || "?"}${e.b ? ": " + e.b : ""}`));
+  if (c.dead) add("Gestorben", c.dead);
+  return rows;
+}
+function viewStand(box, c) {
+  box.appendChild(h("h2", "", "Endstand zum Abschreiben"));
+  const rows = standRows(c), card = h("div", "stand");
+  rows.forEach(([k, v]) => { const r = h("div", "sr"); r.appendChild(h("span", "", k)); r.appendChild(h("b", "", v)); card.appendChild(r); });
+  box.appendChild(card);
+  box.appendChild(h("p", "hint", "So steht der Charakter jetzt da. Alle Werte, um das Charakterblatt neu auszufüllen. Notizen sind nicht dabei."));
+  const cp = h("button", "big alt", "Endstand als Text kopieren"); cp.type = "button";
+  cp.addEventListener("click", async () => {
+    const t = rows.map(([k, v]) => (k ? k + ": " : "    ") + v.replace(/\n/g, " | ")).join("\n"); let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch { ok = false; }
+    stText = ok ? "" : t; stMsg = ok ? "Text kopiert." : "Der Text steht unten im Feld. Markiere ihn und kopiere ihn von Hand."; render();
+  });
+  box.appendChild(cp);
+  if (stMsg) box.appendChild(h("p", "hint", stMsg));
+  if (stText) { const ta = h("textarea", "raw"); ta.readOnly = true; ta.value = stText; ta.style.marginTop = "6px"; box.appendChild(ta); }
+}
 function viewVerlauf(box, c) {
   box.appendChild(h("h2", "", "Verlauf"));
   const mine = S.log.filter((e) => e.cid === c.id).slice().reverse();
@@ -627,6 +683,7 @@ function viewVerlauf(box, c) {
     }
     box.appendChild(cr);
   }
+  viewStand(box, c);
   box.appendChild(h("h2", "", "Daten"));
   const old = legacyChars();
   if (old.length) { const b = h("button", "big alt", `Aus der Würfel-Extension übernehmen (${old.length})`); b.addEventListener("click", importLegacy); box.appendChild(b); }
