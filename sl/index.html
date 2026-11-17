@@ -451,7 +451,34 @@
     if (!box.children.length) box.appendChild(mk("p", "hint", "Noch keine Charaktere. Sobald Spieler einen anlegen, erscheinen sie hier."));
     $("cadd").disabled = loc.length >= MAX.chars;
     box.prepend(probePanel());
+    const bp = bulkPanel(); if (bp) box.prepend(bp);
     const sp = selfPanel(); if (sp) box.prepend(sp);
+  }
+
+  // ---------- Furcht und Erschöpfung für alle Spieler ----------
+  // Schickt die Änderung an jeden Spieler, dessen Charakter geteilt ist. Die Charakter-Extension trägt sie ein (im Verlauf des Spielers als "SL", dort rückgängig zu machen) und meldet die neuen Werte zurück.
+  let bulkOpen = false, bulkMsg = "";
+  const condSet = (pid, kind, v) => OBR.broadcast.sendMessage(CH, { type: "cond", pid, kind, set: v }, { destination: "ALL" }).catch(() => {});
+  function bulkPanel() {
+    const pc = readPChars(), ps = party.filter((p) => p.role !== "GM" && pc[p.id] && pc[p.id].c && pc[p.id].c.tr);
+    if (!ps.length) return null;
+    const det = mk("details", "ncard bcard"), sm = mk("summary");
+    sm.appendChild(mk("span", "chev")); sm.appendChild(mk("span", "", "Alle Spieler: Furcht und Erschöpfung"));
+    det.appendChild(sm); det.open = bulkOpen; det.addEventListener("toggle", () => { bulkOpen = det.open; });
+    const b = mk("div", "ib"), z = mk("div", "ztr"), msg = mk("p", "hint", bulkMsg);
+    [["exh", "Erschöpfung"], ["fear", "Furcht"]].forEach(([k, n]) => {
+      const w = mk("div", "zt " + k), hd = mk("div", "zh"), ct = mk("div", "zc"), m = mk("button", "", "-"), zr = mk("button", "", "0"), p = mk("button", "", "+");
+      hd.appendChild(mk("i", "", n));
+      m.title = n + " bei allen um 1 senken"; zr.title = n + " bei allen auf 0 setzen"; p.title = n + " bei allen um 1 erhöhen";
+      const go = (txt, f) => { ps.forEach((x) => f(x.id)); bulkMsg = `${n} ${txt}: an ${ps.length} Spieler gesendet.`; msg.textContent = bulkMsg; };
+      m.addEventListener("click", () => go("-1", (id) => cond(id, k, -1)));
+      zr.addEventListener("click", () => go("auf 0", (id) => condSet(id, k, 0)));
+      p.addEventListener("click", () => go("+1", (id) => cond(id, k, 1)));
+      ct.append(m, zr, p); w.append(hd, ct); z.appendChild(w);
+    });
+    b.appendChild(z);
+    if (!bulkMsg) msg.textContent = `Gilt für alle ${ps.length} Spieler mit geteiltem Charakter. - und + ändern um 1, 0 setzt auf 0. Einzeln geht es auf der Karte jedes Spielers.`;
+    b.appendChild(msg); det.appendChild(b); return det;
   }
 
   // ---------- Eigenänderungen der Spieler ----------
